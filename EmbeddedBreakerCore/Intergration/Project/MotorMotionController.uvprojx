@@ -717,7 +717,7 @@
             <File>
               <FileName>README.md</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\MotorMotionControlModule\README.md</FilePath>
+              <FilePath>..\..\..\README.md</FilePath>
             </File>
           </Files>
         </Group>
