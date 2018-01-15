@@ -34,7 +34,7 @@ u32 mem_malloc (u32 size);		 								//内存分配(内部调用)
 u8 mem_free (u32 offset);		 								//内存释放(内部调用)
 u8 mem_perused (void);											//得内存使用率(外/内部调用) 
 
-extern u8 MemUsagePercent;
+extern u8 MemUsagePercent;										//全局内存占用率
 
 //用户调用函数
 void myfree (void *ptr);  										//内存释放(外部调用)

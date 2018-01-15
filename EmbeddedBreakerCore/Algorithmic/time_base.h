@@ -15,7 +15,7 @@
 #define TickDivsIntervalus(us)	(us / (TimeCalcusofucTimer(us_TogglePeriod, us_Prescaler)))
 #endif
 
-void TIM2_msTimeBase_Init (FunctionalState control);
+void TIM2_usTimeBase_Init (FunctionalState control);
 
 #endif
 

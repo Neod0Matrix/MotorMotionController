@@ -20,10 +20,6 @@ pidDebugSpeed_Switch		pidDS_Switch;				//是否启用PID算法调速
 psaux_CheckTaskRound		psaux_Switch;				//是否开启任务资源切换查看
 DataScope_DetectData		DSD_Switch;					//是否允许使用DataScope查看数据
 
-//-------------MMC Part
-Init_ARM_Reset_Switch 		Init_Reset_Switch;			//是否启用滑轨开机复位
-Sigmod_Acce_Dval_Switch 	SAD_Switch;					//是否启用S形加减速
-
 /*	
 	统一资源配置，开机读取
 	一堆具有深刻哲♂学♀意义的调试开关
@@ -133,20 +129,6 @@ void Universal_Resource_Config (void)
 		装逼专用
 	*/
 	DSD_Switch			= DSD_Disable;					//DSD_Enable		DSD_Disable
-	
-	//-------------MMC Part
-	/*
-		电机柔性启停有多种积极意义
-		本工程主要是为了在步进电机相对高速运转时带动更重负载
-	*/
-    SAD_Switch 			= SAD_Enable;					//SAD_Enable		SAD_Disable
-	
-	/*
-		机器上电完全复位的重要部分
-		实际运用建议开启，建立绝对坐标系
-		调试时建议关闭，以免损伤机械臂部件
-	*/
-    Init_Reset_Switch 	= Reset_Disable;				//Reset_Enable		Reset_Disable
 	
 #endif													//end of Frame_PreConfig flag
 }

@@ -70,12 +70,4 @@
 #include "ui.h"											//OLED UI sample
 
 //===================================================================================================
-//运动控制器MotorMotionControl目录下包含
-#include "limit_sensor.h"								//限位传感器
-#include "single_step.h"								//单步调试
-#include "sigmod.h"										//S形曲线模拟
-#include "motion_studio.h"								//运动算例
-#include "tim_config.h"									//定时器配置
-
-//===================================================================================================
 //code by </MATRIX>@Neod Anderjon

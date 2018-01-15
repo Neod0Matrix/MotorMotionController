@@ -14,7 +14,7 @@ const u32 memtblsize = MEM_ALLOC_TABLE_SIZE;	//内存表大小
 const u32 memblksize = MEM_BLOCK_SIZE;			//内存分块大小
 const u32 memsize = MEM_MAX_SIZE;				//内存总大小
 
-u8 MemUsagePercent;
+u8 MemUsagePercent;	
 
 //内存管理控制器
 _m_mallco_dev mallco_dev =
@@ -73,10 +73,9 @@ u8 mem_perused (void)
     for (i = 0; i < memtblsize; i++)  
         if (mallco_dev.memmap[i]) 
 			used++; 
-    
+		
 	memUsage = (used * 100) / (memtblsize);  
-	//全局传参
-	MemUsagePercent = memUsage;
+	MemUsagePercent = memUsage;					//全局传参
 	
     return memUsage;
 }  

@@ -11,7 +11,7 @@
 #define Timerx_IRQn				TIM2_IRQn					//定时器中断	
 
 //初始化定时器2作为us级分频时序基础
-void TIM2_msTimeBase_Init (FunctionalState control)  
+void TIM2_usTimeBase_Init (FunctionalState control)  
 {  
 	ucTimerx_InitSetting(	TimeBaseFreqDivTimer, 
 							Timerx_IRQn, 

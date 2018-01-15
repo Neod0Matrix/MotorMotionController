@@ -19,10 +19,6 @@
 //#define VECT_TAB_RAM						//是否使用RAM加载向量表
 //#define use_cpp_algo						//在N皇后问题中采取C++的算法
 
-//-------------MMC Part
-#define PosLogicOperation				//脉冲信号配置为正逻辑式，如果采用负逻辑则注释
-//#define UseTimerPWMorOCChannel		//定时器PWM或者OC通道是否使用原设置通道
-
 /*------------------------------------------enum型选值配置-----------------------------------------------*/
 //是否启用错误报警机制
 typedef enum {EW_Enable = 1, EW_Disable = !EW_Enable} 					Error_Warning_Switch;
@@ -66,15 +62,6 @@ extern psaux_CheckTaskRound			psaux_Switch;
 //是否允许使用DataScope查看数据
 typedef enum {DSD_Enable = 1, DSD_Disable = !DSD_Enable}				DataScope_DetectData;
 extern DataScope_DetectData			DSD_Switch;		
-
-//-------------MMC Part
-//是否启用开机滑轨复位
-typedef enum {Reset_Enable = 1, Reset_Disable = !Reset_Enable} 			Init_ARM_Reset_Switch;
-extern Init_ARM_Reset_Switch 		Init_Reset_Switch;
-//是否启用步进电机S形加减速
-typedef enum {SAD_Enable = 1, SAD_Disable = !SAD_Enable} 				Sigmod_Acce_Dval_Switch;
-extern Sigmod_Acce_Dval_Switch 		SAD_Switch;
-
 
 //总体开关编号
 typedef enum
