@@ -84,7 +84,8 @@ typedef enum
 }
 Global_Switch_Nbr;
 
-#define Max_Option_Value	14u			//设置选项的最大值
+//设置选项的最大值，可以注释掉在库中更新
+//#define Max_Option_Value	14u			
 
 //统一资源配置器
 extern void Universal_Resource_Config (void);

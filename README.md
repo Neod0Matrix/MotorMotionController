@@ -8,7 +8,7 @@ Copyright
 Update
 ===============
 
-	最后更新时间: 2018/01/13pm1733
+	最后更新时间: 2018/01/15pm2136
 
 Project Manual
 ==============
@@ -30,14 +30,14 @@ Project Manual
 	Laboratory: 	T.WKVER
 	OS_Version: 	μC/OS-III v3.03
 	FWLib_Verson: 	v3.5
-	Project_Verson: OS_v0p0_LTE 长期演进版(什么时候TMD才能跑出个stable来啊)_(:з」∠)_ _(┐「ε:)_
+	Project_Verson: OS_v0p1_LTE 长期演进版(什么时候TMD才能跑出个stable来啊)_(:з」∠)_ _(┐「ε:)_
 	
 Use Manual
 ===============
 
 	同一头文件包含头文件：stdafx.h Windows编程标准包含
-	使用前请先打开config.c文件按照注释提示修改系统资源配置
-	之后详细阅读readme.txt，并且保证自己很清醒
+	使用前请先打开config.c config.h文件按照注释提示修改系统资源配置
+	之后详细阅读README.md，并且保证自己很清醒
 	
 Inner IO Map
 ===============

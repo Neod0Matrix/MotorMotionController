@@ -130,6 +130,9 @@ void Universal_Resource_Config (void)
 	*/
 	DSD_Switch			= DSD_Disable;					//DSD_Enable		DSD_Disable
 	
+	//--------------------对外API接口
+	ModuleMMC_UniResConfig();
+	
 #endif													//end of Frame_PreConfig flag
 }
 
@@ -171,6 +174,9 @@ void urcMapTable_Print (void)
 		usart1WaitForDataTransfer();
 		printf("\r\n%02d 	DataScope Detect Data Curve", urc_dsd);
 		usart1WaitForDataTransfer();
+		//--------------------对外API接口
+		ModuleMMC_URCMap();
+
 		printf("\r\n");
 		usart1WaitForDataTransfer();
 	}
@@ -213,7 +219,9 @@ void pclURC_DebugHandler (void)
 		case urc_psaux: 	psaux_Switch	= (psaux_CheckTaskRound)ed_status;			break;
 		case urc_dsd:		DSD_Switch		= (DataScope_DetectData)ed_status;			break;
 		}
-	
+		//--------------------对外API接口
+		ModuleMMC_urcDebugHandler(ed_status, (Module_SwitchNbr)sw_type);
+		
 		__ShellHeadSymbol__; U1SD("URC Setting Update\r\n");//URC配置更新
 	}
 	else if (sw_type > Max_Option_Value)				//选项超值报错

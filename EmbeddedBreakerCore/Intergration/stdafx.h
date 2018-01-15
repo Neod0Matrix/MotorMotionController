@@ -69,5 +69,8 @@
 //UI
 #include "ui.h"											//OLED UI sample
 
+//MotorMotionControlModule链接库
+#include "link.h"
+
 //===================================================================================================
 //code by </MATRIX>@Neod Anderjon

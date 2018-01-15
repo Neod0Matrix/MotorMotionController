@@ -99,7 +99,8 @@ void OLED_DisplayInitConst (void)
 {
 	if (OLED_Switch == OLED_Enable)
 	{
-		OLED_ScreenP0_Const();	
+		//OLED_ScreenP0_Const();	
+		OLED_ScreenP4_Const();
 		delay_ms(300);						//logo延迟
 		OLED_Clear();						//擦除原先的画面
 		OLED_ScreenP1_Const();	
@@ -281,7 +282,8 @@ void UIScreen_DisplayHandler (void)
 		switch (pageUpdate)
 		{
 		case 0: 
-			OLED_ScreenP0_Const(); 
+			//OLED_ScreenP0_Const(); 
+			OLED_ScreenP4_Const(); 
 			break;
 		case 1: 
 			OLED_ScreenP1_Const();
