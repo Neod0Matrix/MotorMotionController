@@ -34,16 +34,6 @@
 #define MD_IO_Reset						hvl								//正相拉高
 #endif
 
-//定时器技术频率结构体
-typedef __packed struct 											
-{
-	//编译不优化
-    volatile uint16_t togglePeriod;										//翻转周期
-	volatile uint16_t toggleCount;										//翻转次数
-} TimCalcul_FreqPara;
-//每个电机对应的定时器通道都必须有相应的配置
-extern TimCalcul_FreqPara mAx_Timer;			
-
 //脉冲总数计算公式
 #ifndef PulseSumCalicus
 #define PulseSumCalicus(perloop, dis) 	(2u * perloop * dis - 1u)		
@@ -54,33 +44,43 @@ extern TimCalcul_FreqPara mAx_Timer;
 #define DistanceFeedback(pulc, perloop) ((((pulc + 1u) / 2u) / perloop) * OneLoopHeight)
 #endif
 
+//结构体成员初始化
+void MotorConfigStrParaInit (MotorMotionSetting *mcstr);
+
 //高级定时器初始化函数声明					
 void TIM1_MecMotorDriver_Init (void);								
 
-//电机输出比较中断
-void motorAxisx_IRQHandler (void);
+//电机脉冲产生中断
+void MotorPulseProduceHandler (MotorMotionSetting *mcstr);
 
-//结构体成员初始化
-void MotorConfigStrParaInit (Motorx_CfgPara *mcstr);
+
 
 //定时器输出比较模式配置
-void Motor_TIM1_ITConfig (
-									uint16_t 		tp, 				//翻转周期
-									uint16_t 		Motorx_CCx, 		//电机对应定时器通道
+void TIM1_MotorMotionTimeBase (			uint16_t 		Motorx_CCx, 		//电机对应定时器通道
 									FunctionalState control				//控制开关
 						);
 	
 //电机动作调用函数
 //传参：结构体频率，结构体圈数，使能开关
-FunctionalState MotorMotionDriver (	u16 			frequency, 			//结构体频率，即电机运行速度
-									float 			Distance, 			//运行距离
+void MotorMotionDriver (	MotorMotionSetting *mcstr,				//结构体传参
 									FunctionalState control				//控制开关
 									);
 									
 //电机运动开
-#define MotorAxisx_Switch_On 			MotorMotionDriver(motorPID_DebugFreq(motorx_cfg.Frequency), motorPID_DebugDis(motorx_cfg.distance), ENABLE)
+#define MotorAxisx_Switch_On 			MotorMotionDriver(motorx_cfg, ENABLE)
 //电机运动关
-#define MotorAxisx_Switch_Off 			MotorMotionDriver(motorPID_DebugFreq(motorx_cfg.Frequency), motorPID_DebugDis(motorx_cfg.distance), DISABLE)
+#define MotorAxisx_Switch_Off 			MotorMotionDriver(motorx_cfg, DISABLE)
+
+//机械臂运动算例
+extern void MotorBaseMotion (	u16 			mvdis, 
+								RevDirection 	dir);
+//急停
+extern void MotorAxisEmgStew (void);
+
+//测试算例
+extern void PeriodUpDnMotion (u16 count);											//滑轨上下测试
+extern void RepeatTestMotion (void);												//传感器机械臂反复测试
+extern void Axis_Pos_Reset (void);													//开机机械臂复位到零点
 
 #endif
 

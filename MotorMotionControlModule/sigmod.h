@@ -61,18 +61,28 @@ typedef __packed struct
 	u16 	disp_table[Num_Range];				//整型离散表
 } Sigmod_Parameter;		
 
+//电机运行状态
+typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
+
 //结构体声明
 typedef __packed struct 						
 {
-    volatile u16 		pulse_counter;			//配置定时器18计数器		
-    float 				distance;				//最小旋转圈数
-    u16 				Frequency;				//设定频率
-	volatile u16 		freqlive_stage;			//频率存活阶段		
+	//基础运动控制
+    volatile uint32_t 	ReversalCnt;			//脉冲计数器
+	uint32_t			ReversalRange;			//脉冲回收系数
+    uint32_t			RotationDistance;		//行距
+    uint16_t 			SpeedFrequency;			//设定频率
+	volatile uint16_t	divFreqCnt;				//分频计数器
+	uint16_t			CalDivFreqConst;		//分频系数
+	//电机状态标志
+	MotorRunStatus		MotorStatusFlag;		//运行状态
+	MotorRunMode		MotorModeFlag;			//运行模式
+	LineRadSelect		DistanceUnitLS;			//线度角度切换
+	//S形加减速扩展
 	Sigmod_Parameter 	asp;					//S加速
 	Sigmod_Parameter 	dsp;					//S减速
-} Motorx_CfgPara;
-//初始化两个轴
-extern Motorx_CfgPara motorx_cfg;	
+} MotorMotionSetting;
+extern MotorMotionSetting motorx_cfg;	
 
 //区间脉冲总数计算
 #ifndef PulseWholeNbr
@@ -97,11 +107,11 @@ extern void MotorDriverLib_Init (void);							//总初始化封装库
 //相关函数声明
 u16 TIMx_GetNowTime (void);										//对应轴的时间获取
 void sigmodPara_Init (void);									//参数初始化
-extern void FreqDisperseTable_Create (Motorx_CfgPara mc);		//得到加减速表
+extern void FreqDisperseTable_Create (MotorMotionSetting mc);		//得到加减速表
 extern void TIM3_SigmodSysTick_Init (FunctionalState control);	//定时器3初始化
 //S型加减速电机控制实现
-void WaitPulseRespond (MotorRunStage rs, Motorx_CfgPara mc);
-extern void SigmodAcceDvalSpeed (Motorx_CfgPara mc);
+void WaitPulseRespond (MotorRunStage rs, MotorMotionSetting mc);
+extern void SigmodAcceDvalSpeed (MotorMotionSetting mc);
 
 #endif
 

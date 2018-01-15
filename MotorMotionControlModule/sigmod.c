@@ -137,7 +137,7 @@ void sigmodPara_Init (void)
 }
 
 //创建离散值数组 程序初始化时调用一次，系统运行时全局保存
-void FreqDisperseTable_Create (Motorx_CfgPara mc)
+void FreqDisperseTable_Create (MotorMotionSetting mc)
 {
 	u16 num, step_x;																					
 
@@ -167,7 +167,7 @@ void FreqDisperseTable_Create (Motorx_CfgPara mc)
 	运行阶段
 	传参：运行阶段，控制结构体
 */
-void WaitPulseRespond (MotorRunStage rs, Motorx_CfgPara mc)
+void WaitPulseRespond (MotorRunStage rs, MotorMotionSetting mc)
 {
 	TIM_Cmd(Sigmod_Timerx, DISABLE);
 	
@@ -187,7 +187,7 @@ void WaitPulseRespond (MotorRunStage rs, Motorx_CfgPara mc)
 }
 
 //S形加减速
-void SigmodAcceDvalSpeed (Motorx_CfgPara mc) 		
+void SigmodAcceDvalSpeed (MotorMotionSetting mc) 		
 {
 	u8 fp;													//只取0-39
 	
