@@ -14,7 +14,7 @@
 
 //定时器设置参数
 #define TargetTimeBase					10								//定时器单个目标定时时基，单位us
-#define TIMPrescaler					71u								//psc 时钟预分频数，通用71分频
+#define TIMPrescaler					71								//psc 时钟预分频数，通用71分频
 #define TIMarrPeriod					9								//arr 自动重装值，最大捕获范围0xFFFF
 #define FreqMaxThreshold				500000L							//频率计数器上限阈值
 //分频数计算
@@ -22,21 +22,11 @@
 #define DivFreqConst(fre) 				(uint32_t)((FreqMaxThreshold / TargetTimeBase) / fre)
 #endif
 
-//带参宏定义翻转周期设置
-#ifndef TimTPArr500k
-#define TimTPArr500k(fre)				(uint16_t)((FreqMaxThreshold / fre) - 1u)//频率计数器
-#endif	
-
 //脉冲发送结束后电机驱动IO口的复位状态
 #ifdef use_ULN2003A														//ULN2003A反相设置
 #define MD_IO_Reset						lvl								//反相拉低
 #else 
 #define MD_IO_Reset						hvl								//正相拉高
-#endif
-
-//脉冲总数计算公式
-#ifndef PulseSumCalicus
-#define PulseSumCalicus(perloop, dis) 	(2u * perloop * dis - 1u)		
 #endif
 
 //行距逆向算法，用于机械臂绝对坐标构建
@@ -48,7 +38,10 @@
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);
 
 //高级定时器初始化函数声明					
-void TIM1_MecMotorDriver_Init (void);								
+void TIM1_MecMotorDriver_Init (void);			
+
+//更新行距
+void DistanceAlgoUpdate (MotorMotionSetting *mcstr);
 
 //电机脉冲产生中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr);
@@ -65,17 +58,9 @@ void TIM1_MotorMotionTimeBase (			uint16_t 		Motorx_CCx, 		//电机对应定时�
 void MotorMotionDriver (	MotorMotionSetting *mcstr,				//结构体传参
 									FunctionalState control				//控制开关
 									);
-									
-//电机运动开
-#define MotorAxisx_Switch_On 			MotorMotionDriver(motorx_cfg, ENABLE)
-//电机运动关
-#define MotorAxisx_Switch_Off 			MotorMotionDriver(motorx_cfg, DISABLE)
 
 //机械臂运动算例
-extern void MotorBaseMotion (	u16 			mvdis, 
-								RevDirection 	dir);
-//急停
-extern void MotorAxisEmgStew (void);
+extern void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, LineRadSelect lrs);
 
 //测试算例
 extern void PeriodUpDnMotion (u16 count);											//滑轨上下测试

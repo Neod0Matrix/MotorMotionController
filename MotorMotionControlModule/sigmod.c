@@ -17,10 +17,11 @@
 #define Timerx_TogglePeriod		((uint16_t)71)				//定时器自动重装翻转周期
 #define Timerx_Prescaler		999u						//定时器分频器		
 
+//主脉冲IO口初始化
 void PulseDriver_IO_Init (void)
 {
-	//PC7
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOC,
+	//PB0
+	ucGPIO_Config_Init (RCC_APB2Periph_GPIOB,
 	//如果IO口对应定时器通道，则配置成复用推挽输出，如果是任意IO口则配置成推挽输出
 #ifdef UseTimerPWMorOCChannel	
 						GPIO_Mode_AF_PP,
@@ -29,34 +30,34 @@ void PulseDriver_IO_Init (void)
 #endif	
 						GPIO_Speed_50MHz,						
 						GPIORemapSettingNULL,			
-						GPIO_Pin_7,					
-						GPIOC,					
+						GPIO_Pin_0,					
+						GPIOB,					
 						IHL,				
 						EBO_Enable);		
 }
 
-//方向线 IO初始化
+//方向线IO初始化
 void Direction_IO_Init (void)
 {
-	//PC9
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOC,										
+	//PA6
+	ucGPIO_Config_Init (RCC_APB2Periph_GPIOA,										
 						GPIO_Mode_Out_PP,					
 						GPIO_Speed_50MHz,						
 						GPIORemapSettingNULL,			
-						GPIO_Pin_9,							
-						GPIOC,					
+						GPIO_Pin_6,							
+						GPIOA,					
 						IHL,				
 						EBO_Enable);
 }
 
-//电机驱动库初始化函数合并
+//电机驱动库初始化函数合并，对main函数接口
 void MotorDriverLib_Init (void)
 {
-	TIM1_MecMotorDriver_Init();								//脉冲发生定时器
-	TIM3_SigmodSysTick_Init(DISABLE);						//间隔定时器
 	PulseDriver_IO_Init();									//脉冲IO口
 	Direction_IO_Init();									//方向IO口
-	FreqDisperseTable_Create(motorx_cfg);					//加减速表生成
+	TIM1_MecMotorDriver_Init();								//脉冲发生定时器
+	//TIM3_SigmodSysTick_Init(DISABLE);						//间隔定时器
+	//FreqDisperseTable_Create(motorx_cfg);					//加减速表生成
 }
 
 //初始化定时器3获取时间(初始化完成后关闭)
@@ -87,7 +88,7 @@ void TIM3_IRQHandler (void)
 	{
 		TIM_ClearITPendingBit(Sigmod_Timerx, TIM_IT_Update);//清除TIMx的中断待处理位
 		
-		motorx_cfg.freqlive_stage++;						//频率变换计数
+		//motorx_cfg.freqlive_stage++;						//频率变换计数
 	}
 	
 #if SYSTEM_SUPPORT_OS										//OS支持
@@ -101,7 +102,7 @@ u16 TIMx_GetNowTime (void)
 	//通过取中断计数得到总的运行时间，单位ms
 #define BasicTimerResult	TimeCalcusofucTimer(Timerx_TogglePeriod, Timerx_Prescaler) * 1000u
 
-	return (u16)motorx_cfg.freqlive_stage * BasicTimerResult;
+	//return (u16)motorx_cfg.freqlive_stage * BasicTimerResult;
 }
 
 //参数初始化
@@ -171,18 +172,18 @@ void WaitPulseRespond (MotorRunStage rs, MotorMotionSetting mc)
 {
 	TIM_Cmd(Sigmod_Timerx, DISABLE);
 	
-	mc.freqlive_stage = 0u;						//频率变换清0	
-	MotorAxisx_Switch_On;
+	//mc.freqlive_stage = 0u;						//频率变换清0	
+	MotorMotionDriver(&motorx_cfg, ENABLE);
 	TIM_Cmd(Sigmod_Timerx, ENABLE);	
 	
 	switch (rs)
 	{
-	case as: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.distance, 
-				mc.asp.ratio) / Num_Range, mc.Frequency)){} break;
-	case us: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.distance, 
-				(1.f - (mc.asp.ratio + mc.dsp.ratio))), mc.Frequency)){} break;
-	case ds: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.distance, 
-				mc.dsp.ratio) / Num_Range, mc.Frequency)){} break;
+	case as: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.RotationDistance, 
+				mc.asp.ratio) / Num_Range, mc.SpeedFrequency)){} break;
+	case us: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.RotationDistance, 
+				(1.f - (mc.asp.ratio + mc.dsp.ratio))), mc.SpeedFrequency)){} break;
+	case ds: while (TIMx_GetNowTime() < StageTimeDelay(PulseWholeNbr(mc.RotationDistance, 
+				mc.dsp.ratio) / Num_Range, mc.SpeedFrequency)){} break;
 	}
 }
 
@@ -194,16 +195,16 @@ void SigmodAcceDvalSpeed (MotorMotionSetting mc)
 	//S曲线加速启动
 	for (fp = 0u; fp < Num_Range; fp++)						//遍历频率表	
 	{
-		mc.Frequency = mc.asp.disp_table[fp];		
+		mc.SpeedFrequency = mc.asp.disp_table[fp];		
 		WaitPulseRespond(as, mc);
 	}
 	//匀速
-	mc.Frequency = mc.asp.disp_table[Num_Range - 1];	
+	mc.SpeedFrequency = mc.asp.disp_table[Num_Range - 1];	
 	WaitPulseRespond(us, mc);
 	//S曲线减速停止
 	for (fp = Num_Range; fp > 0; fp--)		
 	{
-		mc.Frequency = mc.dsp.disp_table[fp - 1];				
+		mc.SpeedFrequency = mc.dsp.disp_table[fp - 1];				
 		WaitPulseRespond(ds, mc);
 	}
 	

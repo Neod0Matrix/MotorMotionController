@@ -10,15 +10,19 @@
 */		
 				
 //脉冲IO口
-#define IO_MainPulse 			PBout(0)		//PB0
+#define IO_MainPulse 			PBout(0)		//主脉冲输出
 #define IO_Direction 			PAout(6)		//方向线输出
 //测试用宏定义
 #define StepMotorZero			200u			//正常一圈(步距角)
-#define Subdivision				2u				//细分数
+#define Subdivision				16u				//细分数
 #define Pulse_per_Loop 			(StepMotorZero * Subdivision)//实际脉冲个数/圈	
+
+//角度线度转换
+//角度单位：一圈即360度；线度单位：一圈即5mm
 #define MaxLimit_Dis			315				//滑轨限位
-
-
+#define OneLoopHeight			5				//步进电机转一圈上升高度
+#define RadUnitConst			(Pulse_per_Loop / 360)
+#define LineUnitConst			(Pulse_per_Loop / OneLoopHeight)
 
 //方向选择
 #ifdef use_ULN2003A								//ULN2003A反相设置
@@ -63,6 +67,11 @@ typedef __packed struct
 
 //电机运行状态
 typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
+
+//电机运行模式，有限运行(正常)，无限运行(测试脉冲频率使用)
+typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
+//线度角度切换(RA<->RD)
+typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
 //结构体声明
 typedef __packed struct 						

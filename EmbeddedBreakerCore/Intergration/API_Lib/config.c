@@ -131,6 +131,7 @@ void Universal_Resource_Config (void)
 	DSD_Switch			= DSD_Disable;					//DSD_Enable		DSD_Disable
 	
 	//--------------------对外API接口
+	
 	ModuleMMC_UniResConfig();
 	
 #endif													//end of Frame_PreConfig flag

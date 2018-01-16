@@ -11,7 +11,7 @@
 //注意高级定时器18挂载在APB2总线上，通用定时器2345挂载在APB1总线上
 #define TIMERx_Number 					TIM1					//设置定时器编号，对应电机编号
 #define RCC_APBxPeriph_TIMERx 			RCC_APB2Periph_TIM1		//设置定时器挂载总线
-#define TIMERx_IRQn						TIM1_UP_IRQn			//通道中断编号，配置为更新中断
+#define TIMERx_IRQn						TIM1_CC_IRQn			//通道中断编号
 #define MotorChnx						TIM_IT_CC1				//电机通道编号
 
 //声明电机参数结构体
@@ -47,7 +47,7 @@ void TIM1_MecMotorDriver_Init (void)
 							irq_Use, 						
 							0x03, 
 							0x05, 
-							ENABLE); 
+							ENABLE);
 }	
 
 /*
@@ -90,6 +90,16 @@ void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
     TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);			//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
+//更新行距计算
+void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
+{
+	switch (mcstr -> DistanceUnitLS)
+	{
+	case RadUnit: 	mcstr -> ReversalRange = 2 * RadUnitConst * mcstr -> RotationDistance - 1u; 	break;
+	case LineUnit: 	mcstr -> ReversalRange = 2 * LineUnitConst * mcstr -> RotationDistance - 1u; 	break;
+	}
+}
+
 //电机中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 {
@@ -115,8 +125,8 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
     }
 }
 
-//定时器1更新中断服务
-void TIM1_UP_IRQHandler (void)
+//定时器1中断服务
+void TIM1_CC_IRQHandler (void)
 {
 #if SYSTEM_SUPPORT_OS
 	OSIntEnter();
@@ -135,13 +145,12 @@ void TIM1_UP_IRQHandler (void)
 //传参：电机编号，结构体频率，结构体距离，使能开关
 void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 {	
-	//参数初始化
-	MotorConfigStrParaInit(mcstr);
-	
 	if (control == ENABLE)
 	{
+		//参数初始化
+		MotorConfigStrParaInit(mcstr);
 		//外部完成计算转储
-		mcstr -> ReversalRange = PulseSumCalicus(Pulse_per_Loop, mcstr -> RotationDistance);
+		DistanceAlgoUpdate(mcstr);
 		mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
 		
 		//报警状态不可驱动电机运转		
@@ -173,84 +182,59 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 	}
 }
 
-//机械臂单独急停
-void MotorAxisEmgStew (void)
-{	
-	//定时器配置关闭
-	MotorAxisx_Switch_Off;
-	
-	//脉冲总线配置关闭
-	MotorConfigStrParaInit(&motorx_cfg);
-}
-
 //该运动算例包含对步进电机S形加减速的设置，可以在config.c中选择是否使用这一功能
-void MotorBaseMotion (	u16 			mvdis, 
-						RevDirection 	dir)
+void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, LineRadSelect lrs)
 {	
-	//初始化参数设置，分割设置防止启动干扰
-	
-	MotorConfigStrParaInit(&motorx_cfg);				//参数清0
 	IO_Direction = dir;									//电机转向初始化
 	
-	//将步进距离转换成圈数，添加软件限位
-	if (mvdis < Z_Max)				
-		motorx_cfg.distance = mvdis / OneLoopHeight;
-	else
-		motorx_cfg.distance = Z_Max / OneLoopHeight;
+	//仅在非无限脉冲模式下对线度进行限制
+	if (mrm != UnlimitRun && lrs == LineUnit)
+	{
+		if (mvdis < MaxLimit_Dis)				
+			motorx_cfg.RotationDistance = mvdis;
+		else
+			motorx_cfg.RotationDistance = MaxLimit_Dis;
+	}
 	
 	//S形加减速法
 	if (SAD_Switch == SAD_Enable)
 	{
-		if (motorx_cfg.distance != 0
-			//传感器初始限位
-			&& (	(dir == Pos_Rev && !USrNLTri) 
-				|| 	(dir == Nav_Rev && !DSrNLTri))
-		)	
-			SigmodAcceDvalSpeed(motorx_cfg); 					//调用S形加减速频率-时间-脉冲数控制	
+		//传感器初始限位
+		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
+			SigmodAcceDvalSpeed(motorx_cfg); 			//调用S形加减速频率-时间-脉冲数控制	
 		else 
-			MotorAxisEmgStew();
+			MotorMotionDriver(&motorx_cfg, DISABLE);
 	}
 	//匀速法
 	else
 	{
 		//代替S形加减速使用固有换向频率
-		//motorx_cfg.Frequency = AutoSettingSpeed;				
-		
-		if (motorx_cfg.distance != 0 
-			//传感器初始限位
-			&& (	(dir == Pos_Rev && !USrNLTri) 
-				|| 	(dir == Nav_Rev && !DSrNLTri))
-		)	
-			MotorAxisx_Switch_On;
+		motorx_cfg.SpeedFrequency = spfq;			
+		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
+			MotorMotionDriver(&motorx_cfg, ENABLE);
 		else 
-			MotorAxisEmgStew();
+			MotorMotionDriver(&motorx_cfg, DISABLE);
 	}
 }
 
 /*
-	机械臂上下测试
+	滑轨上下测试
 	传送参数：计数变量(偶数上升，奇数下降)
 */
 void PeriodUpDnMotion (u16 count)
 {
 	//滑轨上下测试，通用传感器长时间触发检测配置
-	if (count % 2u == 0u)								//偶数上升
+	if (count % 2u == 0u && !USrNLTri)					//偶数上升
 	{
-		if (!USrNLTri)								//划定条件范围				
-		{
-			MotorBaseMotion(MaxLimit_Dis * Distance_Ratio, Pos_Rev);
-			WaitForSR_Trigger(ULSR);					//等待传感器长期检测	
-			MotorAxisEmgStew();
-		}
+		MotorBaseMotion(2000, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit);
+		WaitForSR_Trigger(ULSR);					//等待传感器长期检测	
+		MotorMotionDriver(&motorx_cfg, DISABLE);
 	}
-	else if (count % 2u != 0u)							//奇数下降
+	else if (count % 2u != 0u && !DSrNLTri)				//奇数下降
 	{
-		if (!DSrNLTri)								//划定条件范围	
-		{
-			MotorBaseMotion(MaxLimit_Dis * Distance_Ratio, Nav_Rev);
-			WaitForSR_Trigger(DLSR);					//等待传感器长期检测
-			MotorAxisEmgStew();
-		}
+		MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit);
+		WaitForSR_Trigger(DLSR);					//等待传感器长期检测
+		MotorMotionDriver(&motorx_cfg, DISABLE);
 	}
 }
 
@@ -275,8 +259,8 @@ void RepeatTestMotion (void)
 		
 		displaySystemInfo();							//打印系统状态信息
 		
-		if (repeatCnt >= 1000) repeatCnt = 0;			//计数复位，防止溢出
-		repeatCnt++;									//从0计到999
+		if (++repeatCnt >= 1000) 
+			repeatCnt = 0;			
 		
 		if (STEW_LTrigger) break;						//长按检测急停
 			
@@ -297,9 +281,9 @@ void Axis_Pos_Reset (void)
 	{
 		if (!DSrNLTri)								//起始时判断是否在原位置
 		{
-			MotorBaseMotion(MaxLimit_Dis * Distance_Ratio, Nav_Rev);//默认以最大运动距离降下，适当调节Distance_Ratio
+			MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit);//默认以最大运动距离降下，适当调节Distance_Ratio
 			WaitForSR_Trigger(DLSR);				//等待传感器长期检测
-			MotorAxisEmgStew();						//完成复位立即停止动作
+			MotorMotionDriver(&motorx_cfg, DISABLE);	//完成复位立即停止动作
 		}
 	}		
 }

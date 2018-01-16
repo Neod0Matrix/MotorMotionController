@@ -73,7 +73,7 @@ void OLED_ScreenP4_Const (void)
 	OLED_Refresh_Gram();
 }
 
-//串口接收数据示例
+//串口接收数据示例，不调用
 void U1RSD_example (void)
 {
     u8 t, len;
@@ -96,47 +96,57 @@ void U1RSD_example (void)
     }
 }
 
-//串口控制运动算例
+//串口控制运动算例，对协议算例接口
 Motion_Select SingleStepDebug_linker (void)
 {
-	//16进制转10进制，线度单位毫米，角度单位度
-	//由于是16进制坐标所以不需要添加0x30转换值
+	/*
+		16进制转10进制，线度单位毫米，角度单位度
+		由于是16进制坐标所以不需要添加0x30转换值
+	*/
 	
-	//两字节算列类型，SSD_MoNum_1st协议宏定义位取
+	//两字节算列类型
 	Motion_Select SSD_MotionNumber	= (Motion_Select)(
 											USART1_RX_BUF[SSD_MoNum_1st] 		* 10u 
 										+ 	USART1_RX_BUF[SSD_MoNum_1st + 1]);
-	//四字节距离
+	//一字节行距单位
+	LineRadSelect SSD_Lrsflag		= (LineRadSelect)(
+											USART1_RX_BUF[SSD_DisUnit_1st]);
+	//四字节行距长度
 	u16 SSD_GetDistance 			= (u16)(
 											USART1_RX_BUF[SSD_GetDis_1st] 		* 1000u 
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 1] 	* 100u 
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 2] 	* 10u
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 3]);
-	
-	//0 <= dis <= 9999
-	if (SSD_GetDistance > X_Max)						//unsigned数据必定大于0
-	{
-		SSD_GetDistance = 0u;							//数据清0
-		
-		ErrorWarning_Feedback(SSDS);					//16进制传送算列错误标识SSDS
-		
-		SERIALDATAERROR;								//串口ascii报警
-		SERIALDATAERROR_16;								//串口16进制报警							
-	}
+	//五字节速度
+	u16 SSD_Speed					= (u16)(USART1_RX_BUF[SSD_SpFq_1st]			* 10000u
+										+	USART1_RX_BUF[SSD_SpFq_1st + 1] 	* 1000u 
+										+ 	USART1_RX_BUF[SSD_SpFq_1st + 2] 	* 100u 
+										+ 	USART1_RX_BUF[SSD_SpFq_1st + 3] 	* 10u
+										+ 	USART1_RX_BUF[SSD_SpFq_1st + 4]);
+	//一字节模式位
+	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(USART1_RX_BUF[SSD_Mode_1st]);
 	
 	//打印标志，算例编号，圈数，急停和警报清除不显示
 	if (SendDataCondition && (SSD_MotionNumber != ERROR_OUT && SSD_MotionNumber != Stew_All))
 	{
 		__ShellHeadSymbol__; 
-		printf("Please Confirm Motion Parameter: Motion Type: %02d / Distance: %dmm\r\n", SSD_MotionNumber, SSD_GetDistance);
+		printf("Please Confirm Motion Parameter: ");
+		//两个flag四种情况
+		if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == LimitRun)
+			printf("Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: LimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+		else if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == UnlimitRun)
+			printf("Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: UnlimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == LimitRun)
+			printf("Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: LimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == UnlimitRun)
+			printf("Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: UnlimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
 		usart1WaitForDataTransfer();		
-		__ShellHeadSymbol__;  U1SD("Controller Loading Pulse, Please Far Away From Motor or Wheel\r\n");
 	}
-	
+
 	//急停指令
 	if (SSD_MotionNumber == Stew_All)
 	{
-		MotorAxisEmgStew();								//急停停下所有轴
+		MotorMotionDriver(&motorx_cfg, DISABLE);
 		EMERGENCYSTOP;									//串口急停
 		EMERGENCYSTOP_16;
 	}
@@ -149,8 +159,8 @@ Motion_Select SingleStepDebug_linker (void)
 		//警报解除
 		case ERROR_OUT: 	ERROR_CLEAR; 								break;//警报解除
 		//机械臂
-		case UpMove: 		MotorBaseMotion(SSD_GetDistance, Pos_Rev); 	break;//机械臂2向上运行测试				
-		case DownMove: 		MotorBaseMotion(SSD_GetDistance, Nav_Rev); 	break;//机械臂2向下运行测试
+		case UpMove: 		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag); break;//机械臂2向上运行测试				
+		case DownMove: 		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag); break;//机械臂2向下运行测试
 		//重复性测试
 		case Repeat: 		RepeatTestMotion(); 						break;//反复测试
 		}

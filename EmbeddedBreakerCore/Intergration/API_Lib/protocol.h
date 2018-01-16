@@ -44,6 +44,7 @@
 //协议缓存数组第二位数据
 typedef enum
 {
+	//标准库包含
     pSSR	= 0,
     pSOR	= 1,
 	pNQU	= 2,
@@ -53,6 +54,8 @@ typedef enum
 	pORF	= 6,
 	pURC	= 7,
 	pMEW	= 8,
+	//--------------------对外API接口
+	pSSDS	= 9,
 } Protocol_Order;
 extern Protocol_Order PO_Judge;							//判断标识
 

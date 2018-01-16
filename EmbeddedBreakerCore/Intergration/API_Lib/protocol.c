@@ -273,6 +273,13 @@ void OrderResponse_Handler (void)
 		case pORF:
 			break;
 		
+		//--------------------对外API接口
+	
+		case pSSDS:
+			U1SD("Motor Single Step Debug\r\n");
+			SingleStepDebug_linker();
+			break;
+		
 		//OS延时任务切换
         default:
             delay_ms(10);											
