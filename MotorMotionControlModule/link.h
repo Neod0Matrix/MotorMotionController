@@ -71,12 +71,12 @@ typedef enum
 	空2位
 */
 #define SSDS				0x1D				//单步调试标识
-#define ModuleMMC_Protocol 	{DH, SSDS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, NB, DT}
+#define ModuleMMC_Protocol 	{DH, SSDS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, NB, NB, DT}
 #define SSD_MoNum_1st		2u					//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st		4u					//单步调试行距单位第一位，共1位
 #define SSD_GetDis_1st		5u					//单步调试行距第一位，共4位
-#define SSD_SpFq_1st		9u					//单步调试速度第一位，共5位
-#define SSD_Mode_1st		14u					//单步调试运行模式第一位，共1位
+#define SSD_SpFq_1st		9u					//单步调试速度第一位，共4位
+#define SSD_Mode_1st		13u					//单步调试运行模式第一位，共1位
 
 //对13个运动算例进行串口查询编号
 typedef enum
@@ -84,8 +84,7 @@ typedef enum
     Stew_All 	= 0,							//急停
     UpMove		= 1,							//机械臂上行
     DownMove	= 2,							//机械臂下行
-	ERROR_OUT	= 3,							//解除报警
-	Repeat		= 4,							//反复测试
+	Repeat		= 3,							//反复测试
 } Motion_Select;								//算例选择	
 
 extern void U1RSD_example (void);				//串口处理例程封装
@@ -94,7 +93,11 @@ extern Motion_Select SingleStepDebug_linker (void);//上层封装单步调试调
 void ModuleMMC_UniResConfig (void);
 void ModuleMMC_URCMap (void);
 void ModuleMMC_urcDebugHandler (u8 ed_status, Module_SwitchNbr sw_type);
+
+#define ScreenPageCount		5u	
+
 void OLED_ScreenP4_Const (void);
+void OLED_DisplayMMC (MotorMotionSetting *mcstr);
 
 #endif
 

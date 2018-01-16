@@ -38,26 +38,20 @@
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);
 
 //高级定时器初始化函数声明					
-void TIM1_MecMotorDriver_Init (void);			
+void TIM1_MecMotorDriver_Init (void);
+
+//定时器输出比较模式配置
+void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control);
 
 //更新行距
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);
-
-//电机脉冲产生中断
-void MotorPulseProduceHandler (MotorMotionSetting *mcstr);
-
-
-
-//定时器输出比较模式配置
-void TIM1_MotorMotionTimeBase (			uint16_t 		Motorx_CCx, 		//电机对应定时器通道
-									FunctionalState control				//控制开关
-						);
 	
 //电机动作调用函数
 //传参：结构体频率，结构体圈数，使能开关
-void MotorMotionDriver (	MotorMotionSetting *mcstr,				//结构体传参
-									FunctionalState control				//控制开关
-									);
+void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control);
+
+//电机脉冲产生中断
+void MotorPulseProduceHandler (MotorMotionSetting *mcstr);
 
 //机械臂运动算例
 extern void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, LineRadSelect lrs);

@@ -15,7 +15,7 @@
 #define MotorChnx						TIM_IT_CC1				//电机通道编号
 
 //声明电机参数结构体
-MotorMotionSetting motorx_cfg;						
+MotorMotionSetting st_motorAcfg;						
 
 //电机驱动参数结构体初始化
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
@@ -29,6 +29,7 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 	mcstr -> MotorStatusFlag	= Stew;
 	mcstr -> MotorModeFlag		= LimitRun;
 	mcstr -> DistanceUnitLS		= RadUnit;	
+	mcstr -> RevDirectionFlag	= Pos_Rev;
 }
 
 //TIM1作为电机驱动定时器初始化
@@ -48,6 +49,8 @@ void TIM1_MecMotorDriver_Init (void)
 							0x03, 
 							0x05, 
 							ENABLE);
+	//参数初始化
+	MotorConfigStrParaInit(&st_motorAcfg);
 }	
 
 /*
@@ -113,6 +116,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
 			TIM_Cmd(TIMERx_Number, DISABLE);					//TIM1关闭
 			IO_MainPulse = MD_IO_Reset;
+			mcstr -> MotorStatusFlag = Stew;					//标志复位
 			return;												//函数遇到return将结束
 		}
 		//分频产生对应的脉冲频率
@@ -134,7 +138,7 @@ void TIM1_CC_IRQHandler (void)
 	
 	//仅在无错误状态下使能
 	if (Return_Error_Type == Error_Clear)						
-		MotorPulseProduceHandler(&motorx_cfg);
+		MotorPulseProduceHandler(&st_motorAcfg);
 	
 #if SYSTEM_SUPPORT_OS
 	OSIntExit();    
@@ -147,24 +151,26 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 {	
 	if (control == ENABLE)
 	{
-		//参数初始化
-		MotorConfigStrParaInit(mcstr);
 		//外部完成计算转储
 		DistanceAlgoUpdate(mcstr);
 		mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
 		
 		//报警状态不可驱动电机运转		
-		if (mcstr -> SpeedFrequency != 0u && mcstr -> RotationDistance != 0 && Return_Error_Type != Error_Clear)								
+		if (mcstr -> SpeedFrequency != 0u && mcstr -> RotationDistance != 0 && Return_Error_Type == Error_Clear)								
 		{		
 			//更新配置				
 			TIM1_MotorMotionTimeBase(MotorChnx, ENABLE);
 			TIM_SetCounter(TIMERx_Number, TimerInitCounterValue);		//计数清0
 			
-			mcstr -> MotorStatusFlag = Run;
+			//计数器初始化
+			mcstr -> ReversalCnt = 0u;			
+			mcstr -> divFreqCnt	= 0u;
 			
 			//开关使能
 			TIM_CtrlPWMOutputs(TIMERx_Number, control);					//通道输出
 			TIM_Cmd(TIMERx_Number, control);							//TIMER使能选择
+			
+			mcstr -> MotorStatusFlag = Run;
 		}
 	}
 	else
@@ -176,44 +182,48 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 		IO_MainPulse = MD_IO_Reset;
 		
 		//参量更新
-		mcstr -> ReversalCnt = mcstr -> ReversalRange;			
+		mcstr -> ReversalCnt = mcstr -> ReversalRange;	
+		mcstr -> MotorStatusFlag = Stew;		
 		mcstr -> divFreqCnt	= 0u;	
-		mcstr -> MotorStatusFlag = Stew;
 	}
 }
 
 //该运动算例包含对步进电机S形加减速的设置，可以在config.c中选择是否使用这一功能
 void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, LineRadSelect lrs)
 {	
-	IO_Direction = dir;									//电机转向初始化
+	//电机转向初始化
+	st_motorAcfg.RevDirectionFlag = dir;
+	IO_Direction = st_motorAcfg.RevDirectionFlag;		
+	st_motorAcfg.SpeedFrequency = spfq;		
 	
 	//仅在非无限脉冲模式下对线度进行限制
 	if (mrm != UnlimitRun && lrs == LineUnit)
 	{
 		if (mvdis < MaxLimit_Dis)				
-			motorx_cfg.RotationDistance = mvdis;
+			st_motorAcfg.RotationDistance = mvdis;
 		else
-			motorx_cfg.RotationDistance = MaxLimit_Dis;
+			st_motorAcfg.RotationDistance = MaxLimit_Dis;
 	}
+	else
+		st_motorAcfg.RotationDistance = mvdis;
 	
 	//S形加减速法
 	if (SAD_Switch == SAD_Enable)
 	{
 		//传感器初始限位
 		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			SigmodAcceDvalSpeed(motorx_cfg); 			//调用S形加减速频率-时间-脉冲数控制	
+			SigmodAcceDvalSpeed(st_motorAcfg); 			//调用S形加减速频率-时间-脉冲数控制	
 		else 
-			MotorMotionDriver(&motorx_cfg, DISABLE);
+			MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 	//匀速法
 	else
 	{
-		//代替S形加减速使用固有换向频率
-		motorx_cfg.SpeedFrequency = spfq;			
+		//代替S形加减速使用固有换向频率	
 		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			MotorMotionDriver(&motorx_cfg, ENABLE);
+			MotorMotionDriver(&st_motorAcfg, ENABLE);
 		else 
-			MotorMotionDriver(&motorx_cfg, DISABLE);
+			MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 }
 
@@ -228,13 +238,13 @@ void PeriodUpDnMotion (u16 count)
 	{
 		MotorBaseMotion(2000, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit);
 		WaitForSR_Trigger(ULSR);					//等待传感器长期检测	
-		MotorMotionDriver(&motorx_cfg, DISABLE);
+		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 	else if (count % 2u != 0u && !DSrNLTri)				//奇数下降
 	{
 		MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit);
 		WaitForSR_Trigger(DLSR);					//等待传感器长期检测
-		MotorMotionDriver(&motorx_cfg, DISABLE);
+		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 }
 
@@ -283,7 +293,7 @@ void Axis_Pos_Reset (void)
 		{
 			MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit);//默认以最大运动距离降下，适当调节Distance_Ratio
 			WaitForSR_Trigger(DLSR);				//等待传感器长期检测
-			MotorMotionDriver(&motorx_cfg, DISABLE);	//完成复位立即停止动作
+			MotorMotionDriver(&st_motorAcfg, DISABLE);	//完成复位立即停止动作
 		}
 	}		
 }

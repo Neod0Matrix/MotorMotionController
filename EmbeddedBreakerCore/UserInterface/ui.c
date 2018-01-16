@@ -106,6 +106,11 @@ void OLED_DisplayInitConst (void)
 		OLED_ScreenP1_Const();	
 		delay_ms(300);						//logo延迟
 		OLED_Clear();						//擦除原先的画面
+		
+		//--------------------对外API接口
+		OLED_DisplayMMC(&st_motorAcfg);
+		delay_ms(300);						//logo延迟
+		OLED_Clear();						//擦除原先的画面
 	}		
 }
 
@@ -296,6 +301,9 @@ void UIScreen_DisplayHandler (void)
 			OLED_ScreenP3_Const();
 			OLED_StatusDetector();	
 			break;
+		//--------------------对外API接口
+		case 4:
+			OLED_DisplayMMC(&st_motorAcfg);
 		}
 	}
 }

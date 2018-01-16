@@ -17,7 +17,7 @@ void ModuleMMC_UniResConfig (void)
 		电机柔性启停有多种积极意义
 		本工程主要是为了在步进电机相对高速运转时带动更重负载
 	*/
-    SAD_Switch 			= SAD_Enable;					//SAD_Enable		SAD_Disable
+    SAD_Switch 			= SAD_Disable;					//SAD_Enable		SAD_Disable
 	
 	/*
 		机器上电完全复位的重要部分
@@ -73,6 +73,37 @@ void OLED_ScreenP4_Const (void)
 	OLED_Refresh_Gram();
 }
 
+//OLED MotorMotionControlModule数据显示
+void OLED_DisplayMMC (MotorMotionSetting *mcstr)
+{	
+	//显示电机运行状态
+	OLED_ShowString(strPos(0u), ROW1, (const u8*)"MS:", Font_Size);
+	if (mcstr -> MotorStatusFlag == Run)
+		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Work", Font_Size);
+	else
+		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Stew", Font_Size);
+
+	//显示电机转向
+	OLED_ShowString(strPos(8u), ROW1, (const u8*)"DN:", Font_Size);
+	if (mcstr -> RevDirectionFlag == Pos_Rev)
+		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Pos", Font_Size);
+	else
+		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Neg", Font_Size);
+	
+	//显示电机行距
+	if (mcstr -> DistanceUnitLS == LineUnit)
+		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RM:", Font_Size);
+	else
+		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RA:", Font_Size);
+	OLED_ShowNum(strPos(3u), ROW2, mcstr -> RotationDistance, 4u, Font_Size);	
+
+	//显示电机转速
+	OLED_ShowString(strPos(8u), ROW2, (const u8*)"SF:", Font_Size);
+	OLED_ShowNum(strPos(11u), ROW2, mcstr -> SpeedFrequency, 4u, Font_Size);	
+	
+	OLED_Refresh_Gram();
+}
+
 //串口接收数据示例，不调用
 void U1RSD_example (void)
 {
@@ -117,17 +148,16 @@ Motion_Select SingleStepDebug_linker (void)
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 1] 	* 100u 
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 2] 	* 10u
 										+ 	USART1_RX_BUF[SSD_GetDis_1st + 3]);
-	//五字节速度
-	u16 SSD_Speed					= (u16)(USART1_RX_BUF[SSD_SpFq_1st]			* 10000u
-										+	USART1_RX_BUF[SSD_SpFq_1st + 1] 	* 1000u 
-										+ 	USART1_RX_BUF[SSD_SpFq_1st + 2] 	* 100u 
-										+ 	USART1_RX_BUF[SSD_SpFq_1st + 3] 	* 10u
-										+ 	USART1_RX_BUF[SSD_SpFq_1st + 4]);
+	//四字节速度
+	u16 SSD_Speed					= (u16)(USART1_RX_BUF[SSD_SpFq_1st]			* 1000u
+										+	USART1_RX_BUF[SSD_SpFq_1st + 1] 	* 100u 
+										+ 	USART1_RX_BUF[SSD_SpFq_1st + 2] 	* 10u 
+										+ 	USART1_RX_BUF[SSD_SpFq_1st + 3]);
 	//一字节模式位
 	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(USART1_RX_BUF[SSD_Mode_1st]);
 	
-	//打印标志，算例编号，圈数，急停和警报清除不显示
-	if (SendDataCondition && (SSD_MotionNumber != ERROR_OUT && SSD_MotionNumber != Stew_All))
+	//打印标志，算例编号，圈数，急停不显示
+	if (SendDataCondition && SSD_MotionNumber != Stew_All)
 	{
 		__ShellHeadSymbol__; 
 		printf("Please Confirm Motion Parameter: ");
@@ -143,33 +173,30 @@ Motion_Select SingleStepDebug_linker (void)
 		usart1WaitForDataTransfer();		
 	}
 
-	//急停指令
-	if (SSD_MotionNumber == Stew_All)
+	switch (SSD_MotionNumber)				
 	{
-		MotorMotionDriver(&motorx_cfg, DISABLE);
+	//急停
+	case Stew_All: 		
+		MotorMotionDriver(&st_motorAcfg, DISABLE); 
 		EMERGENCYSTOP;									//串口急停
-		EMERGENCYSTOP_16;
-	}
-	else												//当算例不为急停时才能继续跑
-	{
-		switch (SSD_MotionNumber)							
-		{
-		//急停
-		case Stew_All: 													break;//急停	
-		//警报解除
-		case ERROR_OUT: 	ERROR_CLEAR; 								break;//警报解除
-		//机械臂
-		case UpMove: 		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag); break;//机械臂2向上运行测试				
-		case DownMove: 		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag); break;//机械臂2向下运行测试
-		//重复性测试
-		case Repeat: 		RepeatTestMotion(); 						break;//反复测试
-		}
+		EMERGENCYSTOP_16;										
+		break;
+	//上下行基本算例
+	case UpMove: 		
+		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag); 
+		break;			
+	case DownMove: 		
+		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag); 
+		break;
+	//重复性测试
+	case Repeat: 		
+		RepeatTestMotion(); 						
+		break;
 	}
 	
-	//急停和警报清除不提示
-	if (SSD_MotionNumber != ERROR_OUT && SSD_MotionNumber != Stew_All)
+	if (SSD_MotionNumber != Stew_All)
 	{
-		__ShellHeadSymbol__; U1SD("Pulse Has Been Sent to the MotorDriver\r\n");
+		__ShellHeadSymbol__; U1SD("Order Has Started to Execute\r\n");
 	}
 	order_bootflag = pcl_error;							//完成工作，协议关闭
 	

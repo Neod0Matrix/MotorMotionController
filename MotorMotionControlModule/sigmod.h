@@ -87,11 +87,12 @@ typedef __packed struct
 	MotorRunStatus		MotorStatusFlag;		//运行状态
 	MotorRunMode		MotorModeFlag;			//运行模式
 	LineRadSelect		DistanceUnitLS;			//线度角度切换
+	RevDirection		RevDirectionFlag;		//方向标志
 	//S形加减速扩展
 	Sigmod_Parameter 	asp;					//S加速
 	Sigmod_Parameter 	dsp;					//S减速
 } MotorMotionSetting;
-extern MotorMotionSetting motorx_cfg;	
+extern MotorMotionSetting st_motorAcfg;	
 
 //区间脉冲总数计算
 #ifndef PulseWholeNbr

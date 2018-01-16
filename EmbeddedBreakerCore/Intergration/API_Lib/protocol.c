@@ -276,14 +276,9 @@ void OrderResponse_Handler (void)
 		//--------------------对外API接口
 	
 		case pSSDS:
-			U1SD("Motor Single Step Debug\r\n");
+			U1SD("MotorMotionControlModule API Single Step Debug Call\r\n");
 			SingleStepDebug_linker();
 			break;
-		
-		//OS延时任务切换
-        default:
-            delay_ms(10);											
-            break;
         }
 		
 		Beep_Once;													//指令完成哔一声

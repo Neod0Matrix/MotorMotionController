@@ -57,7 +57,7 @@ void MotorDriverLib_Init (void)
 	Direction_IO_Init();									//方向IO口
 	TIM1_MecMotorDriver_Init();								//脉冲发生定时器
 	//TIM3_SigmodSysTick_Init(DISABLE);						//间隔定时器
-	//FreqDisperseTable_Create(motorx_cfg);					//加减速表生成
+	//FreqDisperseTable_Create(st_motorAcfg);					//加减速表生成
 }
 
 //初始化定时器3获取时间(初始化完成后关闭)
@@ -88,7 +88,7 @@ void TIM3_IRQHandler (void)
 	{
 		TIM_ClearITPendingBit(Sigmod_Timerx, TIM_IT_Update);//清除TIMx的中断待处理位
 		
-		//motorx_cfg.freqlive_stage++;						//频率变换计数
+		//st_motorAcfg.freqlive_stage++;						//频率变换计数
 	}
 	
 #if SYSTEM_SUPPORT_OS										//OS支持
@@ -102,7 +102,7 @@ u16 TIMx_GetNowTime (void)
 	//通过取中断计数得到总的运行时间，单位ms
 #define BasicTimerResult	TimeCalcusofucTimer(Timerx_TogglePeriod, Timerx_Prescaler) * 1000u
 
-	//return (u16)motorx_cfg.freqlive_stage * BasicTimerResult;
+	//return (u16)st_motorAcfg.freqlive_stage * BasicTimerResult;
 }
 
 //参数初始化
@@ -120,21 +120,21 @@ void sigmodPara_Init (void)
 	u8 i;
 	
 	//加速段
-	motorx_cfg.asp.freq_max = 2800u;
-	motorx_cfg.asp.freq_min = 1200u;
-	motorx_cfg.asp.para_a = 0.03f;
-	motorx_cfg.asp.para_b = 200.f;
-	motorx_cfg.asp.ratio = 0.4f;
+	st_motorAcfg.asp.freq_max = 2800u;
+	st_motorAcfg.asp.freq_min = 1200u;
+	st_motorAcfg.asp.para_a = 0.03f;
+	st_motorAcfg.asp.para_b = 200.f;
+	st_motorAcfg.asp.ratio = 0.4f;
 	for (i = 0u; i < Num_Range; i++)
-		motorx_cfg.asp.disp_table[i] = 0u;
+		st_motorAcfg.asp.disp_table[i] = 0u;
 	//减速段
-	motorx_cfg.dsp.freq_max = 2800u;
-	motorx_cfg.dsp.freq_min = 1200u;
-	motorx_cfg.dsp.para_a = 0.03f;
-	motorx_cfg.dsp.para_b = 200.f;
-	motorx_cfg.dsp.ratio = 0.1f;
+	st_motorAcfg.dsp.freq_max = 2800u;
+	st_motorAcfg.dsp.freq_min = 1200u;
+	st_motorAcfg.dsp.para_a = 0.03f;
+	st_motorAcfg.dsp.para_b = 200.f;
+	st_motorAcfg.dsp.ratio = 0.1f;
 	for (i = 0u; i < Num_Range; i++)
-		motorx_cfg.dsp.disp_table[i] = 0u;
+		st_motorAcfg.dsp.disp_table[i] = 0u;
 }
 
 //创建离散值数组 程序初始化时调用一次，系统运行时全局保存
@@ -173,7 +173,7 @@ void WaitPulseRespond (MotorRunStage rs, MotorMotionSetting mc)
 	TIM_Cmd(Sigmod_Timerx, DISABLE);
 	
 	//mc.freqlive_stage = 0u;						//频率变换清0	
-	MotorMotionDriver(&motorx_cfg, ENABLE);
+	MotorMotionDriver(&st_motorAcfg, ENABLE);
 	TIM_Cmd(Sigmod_Timerx, ENABLE);	
 	
 	switch (rs)
