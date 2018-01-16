@@ -183,14 +183,14 @@ Motion_Select SingleStepDebug_linker (void)
 		break;
 	//上下行基本算例
 	case UpMove: 		
-		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag); 
+		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag, &st_motorAcfg); 
 		break;			
 	case DownMove: 		
-		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag); 
+		MotorBaseMotion(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag, &st_motorAcfg); 
 		break;
 	//重复性测试
 	case Repeat: 		
-		RepeatTestMotion(); 						
+		RepeatTestMotion(&st_motorAcfg); 						
 		break;
 	}
 	

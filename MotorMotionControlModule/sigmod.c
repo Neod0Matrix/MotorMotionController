@@ -17,39 +17,6 @@
 #define Timerx_TogglePeriod		((uint16_t)71)				//定时器自动重装翻转周期
 #define Timerx_Prescaler		999u						//定时器分频器		
 
-//主脉冲IO口初始化
-void PulseDriver_IO_Init (void)
-{
-	//PB0
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOB,
-	//如果IO口对应定时器通道，则配置成复用推挽输出，如果是任意IO口则配置成推挽输出
-#ifdef UseTimerPWMorOCChannel	
-						GPIO_Mode_AF_PP,
-#else
-						GPIO_Mode_Out_PP,
-#endif	
-						GPIO_Speed_50MHz,						
-						GPIORemapSettingNULL,			
-						GPIO_Pin_0,					
-						GPIOB,					
-						IHL,				
-						EBO_Enable);		
-}
-
-//方向线IO初始化
-void Direction_IO_Init (void)
-{
-	//PA6
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOA,										
-						GPIO_Mode_Out_PP,					
-						GPIO_Speed_50MHz,						
-						GPIORemapSettingNULL,			
-						GPIO_Pin_6,							
-						GPIOA,					
-						IHL,				
-						EBO_Enable);
-}
-
 //电机驱动库初始化函数合并，对main函数接口
 void MotorDriverLib_Init (void)
 {

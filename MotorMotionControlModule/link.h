@@ -9,8 +9,8 @@
 
 //链接所有MotorMotionControl模块的头文件
 #include "limit_sensor.h"
-#include "sigmod.h"
 #include "pulse_config.h"
+#include "sigmod.h"
 
 //MCU资源
 #define _MCU_Model_				"STM32F103RET6"			//主控芯片型号

@@ -7,33 +7,7 @@
 /*
 	机械臂步进电机S形加减速算法
 	调参方法：优化曲线A，B值
-*/		
-				
-//脉冲IO口
-#define IO_MainPulse 			PBout(0)		//主脉冲输出
-#define IO_Direction 			PAout(6)		//方向线输出
-//测试用宏定义
-#define StepMotorZero			200u			//正常一圈(步距角)
-#define Subdivision				16u				//细分数
-#define Pulse_per_Loop 			(StepMotorZero * Subdivision)//实际脉冲个数/圈	
-
-//角度线度转换
-//角度单位：一圈即360度；线度单位：一圈即5mm
-#define MaxLimit_Dis			315				//滑轨限位
-#define OneLoopHeight			5				//步进电机转一圈上升高度
-#define RadUnitConst			(Pulse_per_Loop / 360)
-#define LineUnitConst			(Pulse_per_Loop / OneLoopHeight)
-
-//方向选择
-#ifdef use_ULN2003A								//ULN2003A反相设置
-typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;		
-#else
-typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;	
-#endif
-
-//电机控制IO初始化
-void PulseDriver_IO_Init (void);
-void Direction_IO_Init (void);					
+*/					
 
 /*
 	sigmod函数原型
@@ -64,35 +38,6 @@ typedef __packed struct
 	float 	ratio;								//参数ratio，S形加减速阶段分化比例
 	u16 	disp_table[Num_Range];				//整型离散表
 } Sigmod_Parameter;		
-
-//电机运行状态
-typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
-
-//电机运行模式，有限运行(正常)，无限运行(测试脉冲频率使用)
-typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
-//线度角度切换(RA<->RD)
-typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
-
-//结构体声明
-typedef __packed struct 						
-{
-	//基础运动控制
-    volatile uint32_t 	ReversalCnt;			//脉冲计数器
-	uint32_t			ReversalRange;			//脉冲回收系数
-    uint32_t			RotationDistance;		//行距
-    uint16_t 			SpeedFrequency;			//设定频率
-	volatile uint16_t	divFreqCnt;				//分频计数器
-	uint16_t			CalDivFreqConst;		//分频系数
-	//电机状态标志
-	MotorRunStatus		MotorStatusFlag;		//运行状态
-	MotorRunMode		MotorModeFlag;			//运行模式
-	LineRadSelect		DistanceUnitLS;			//线度角度切换
-	RevDirection		RevDirectionFlag;		//方向标志
-	//S形加减速扩展
-	Sigmod_Parameter 	asp;					//S加速
-	Sigmod_Parameter 	dsp;					//S减速
-} MotorMotionSetting;
-extern MotorMotionSetting st_motorAcfg;	
 
 //区间脉冲总数计算
 #ifndef PulseWholeNbr

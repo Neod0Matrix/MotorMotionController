@@ -33,8 +33,7 @@ void bspPeriSysCalls (void)
 	TIM2_usTimeBase_Init(ENABLE);						//us级公交车定时器2初始化(就是谁都可以蹭个时基的意思)
 	
 	//--------------------对外API接口
-	
-	MotorDriverLib_Init();
+	MotorDriverLib_Init();								//电机驱动模块初始化
 	
 	EXTI_Config_Init();									//外部中断初始化
 	
@@ -66,6 +65,8 @@ static void preSetUpHardware (void)
     bspPeriSysCalls();									//初始化底层函数封装
 	
 	OLED_DisplayInitConst();							//UI初始化
+	
+	Axis_Pos_Reset(&st_motorAcfg);						//滑轨复位
 	Response_Strings();									//与上位机通信的起始标志，表示控制器已初始化完成
 }
 
