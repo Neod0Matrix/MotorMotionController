@@ -32,7 +32,9 @@ void bspPeriSysCalls (void)
 	
 	TIM2_usTimeBase_Init(ENABLE);						//us级公交车定时器2初始化(就是谁都可以蹭个时基的意思)
 	
-	//--------------------对外API接口
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
 	MotorDriverLib_Init();								//电机驱动模块初始化
 	
 	EXTI_Config_Init();									//外部中断初始化
@@ -40,6 +42,12 @@ void bspPeriSysCalls (void)
 	//----------------------------------IO口初始化----------------------------------------//
 	
 	KEY_Init();         								//初始化与按键连接的硬件接口
+
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
+	if (ASES_Switch == ASES_Disable)
+		Sensor_IO_Init();
 	
 	Beep_IO_Init();										//初始化报警用蜂鸣器
 	LVD_IO_Init();										//欠压检测IO

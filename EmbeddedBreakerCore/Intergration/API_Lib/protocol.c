@@ -34,7 +34,10 @@ static int Protocol_Stack[][Protocol_Stack_Size] =
 	/*6*/	{DH, URC, NB, 0x03, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, DT},
 	//警报的手动触发与清除
 	/*7*/	{DH, MEW, 0x01, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, DT},
-	//--------------------对外API接口
+	
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
 	/*8*/	ModuleMMC_Protocol,
 };
 

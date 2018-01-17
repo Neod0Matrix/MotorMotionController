@@ -54,7 +54,10 @@ typedef enum
 	pORF	= 6,
 	pURC	= 7,
 	pMEW	= 8,
-	//--------------------对外API接口
+	
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
 	pSSDS	= 9,
 } Protocol_Order;
 extern Protocol_Order PO_Judge;							//判断标识

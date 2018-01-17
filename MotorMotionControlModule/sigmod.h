@@ -4,11 +4,8 @@
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
 //====================================================================================================
-/*
-	机械臂步进电机S形加减速算法
-	调参方法：优化曲线A，B值
-*/					
-
+//电机S形加减速算法
+	
 /*
 	sigmod函数原型
 	matlab建模原型方程：
@@ -19,14 +16,15 @@
 	>>	y = (2500-1500)./(1+exp(-0.1*(x-50)))+1500;
 	>>	plot(x, y)
 	只取整数进行演算
+	调参方法：优化曲线A，B值
 */	
 #ifndef sigmodAlgo
 #define sigmodAlgo(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
 #endif
 
 //X_Range / Num_Range即x取值间隔，最好为整数			
-#define Num_Range				40u				//x取值个数	
-#define X_Range					400u			//x取值范围，越大曲线越平滑(通常并不需要多平滑)
+#define Num_Range						40u		//x取值个数	
+#define X_Range							400u	//x取值范围，越大曲线越平滑(通常并不需要多平滑)
 
 //sigmod函数参数结构体
 typedef __packed struct 
@@ -38,6 +36,7 @@ typedef __packed struct
 	float 	ratio;								//参数ratio，S形加减速阶段分化比例
 	u16 	disp_table[Num_Range];				//整型离散表
 } Sigmod_Parameter;		
+extern Sigmod_Parameter asp, dsp;
 
 //区间脉冲总数计算
 #ifndef PulseWholeNbr
@@ -57,16 +56,12 @@ typedef enum
 	ds = 2,
 } MotorRunStage;
 
-extern void MotorDriverLib_Init (void);							//总初始化封装库
-
 //相关函数声明
 u16 TIMx_GetNowTime (void);										//对应轴的时间获取
 void sigmodPara_Init (void);									//参数初始化
-extern void FreqDisperseTable_Create (MotorMotionSetting mc);		//得到加减速表
-extern void TIM3_SigmodSysTick_Init (FunctionalState control);	//定时器3初始化
+extern void FreqDisperseTable_Create (MotorMotionSetting mc);	//得到加减速表
 //S型加减速电机控制实现
-void WaitPulseRespond (MotorRunStage rs, MotorMotionSetting mc);
-extern void SigmodAcceDvalSpeed (MotorMotionSetting mc);
+extern void SigmodAcceDvalSpeed (void);
 
 #endif
 

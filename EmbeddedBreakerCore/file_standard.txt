@@ -23,3 +23,8 @@ H文件标准：
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon
+
+向EmbeddedBreakerCore框架中插入外部链接：
+/*
+	@EmbeddedBreakerCore Extern API Insert
+*/

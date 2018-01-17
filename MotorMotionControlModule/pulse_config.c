@@ -86,6 +86,15 @@ void TIM1_MecMotorDriver_Init (void)
 	MotorConfigStrParaInit(&st_motorAcfg);
 }	
 
+//电机驱动库初始化函数合并，对main函数接口
+void MotorDriverLib_Init (void)
+{
+	PulseDriver_IO_Init();									//脉冲IO口
+	Direction_IO_Init();									//方向IO口
+	TIM1_MecMotorDriver_Init();								//脉冲发生定时器
+	FreqDisperseTable_Create(st_motorAcfg);					//加减速表生成
+}
+
 /*
 	定时器1作为电机控制定时器配置
 	传参：电机对应定时器通道，使能开关
@@ -247,7 +256,7 @@ void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, L
 	{
 		//传感器初始限位
 		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			SigmodAcceDvalSpeed(*mcstr);			//调用S形加减速频率-时间-脉冲数控制	
+			SigmodAcceDvalSpeed();			//调用S形加减速频率-时间-脉冲数控制	
 		else 
 			MotorMotionDriver(mcstr, DISABLE);
 	}
@@ -310,7 +319,6 @@ void RepeatTestMotion (MotorMotionSetting *mcstr)
 		if (STEW_LTrigger) break;						//长按检测急停
 			
 	}
-	
     //总动作完成
 	__ShellHeadSymbol__; U1SD("Test Repeat Stop\r\n");
 }

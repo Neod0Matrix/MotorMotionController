@@ -44,6 +44,11 @@
 #define RadUnitConst					(Pulse_per_Loop / 360)
 #define LineUnitConst					(Pulse_per_Loop / OneLoopHeight)
 
+//行距逆向算法，用于机械臂绝对坐标构建(坐标调试模式使用)
+#ifndef DistanceFeedback
+#define DistanceFeedback(pulc, perloop) ((((pulc + 1u) / 2u) / perloop) * OneLoopHeight)
+#endif
+
 //方向选择
 #ifdef use_ULN2003A								//ULN2003A反相设置
 typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;		
@@ -81,35 +86,18 @@ extern MotorMotionSetting st_motorAcfg;
 void PulseDriver_IO_Init (void);
 void Direction_IO_Init (void);		
 
-//行距逆向算法，用于机械臂绝对坐标构建
-#ifndef DistanceFeedback
-#define DistanceFeedback(pulc, perloop) ((((pulc + 1u) / 2u) / perloop) * OneLoopHeight)
-#endif
+//基于定时器的基本电机驱动
+void MotorConfigStrParaInit (MotorMotionSetting *mcstr);							//结构体成员初始化
+void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函数声明		
+extern void MotorDriverLib_Init (void);												//总初始化封装库
+void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式配置
+void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
+void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control);		//电机启动停止动作
+void MotorPulseProduceHandler (MotorMotionSetting *mcstr);							//电机脉冲产生中断
 
-//结构体成员初始化
-void MotorConfigStrParaInit (MotorMotionSetting *mcstr);
-
-//高级定时器初始化函数声明					
-void TIM1_MecMotorDriver_Init (void);
-
-//定时器输出比较模式配置
-void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control);
-
-//更新行距
-void DistanceAlgoUpdate (MotorMotionSetting *mcstr);
-	
-//电机动作调用函数
-//传参：结构体频率，结构体圈数，使能开关
-void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control);
-
-//电机脉冲产生中断
-void MotorPulseProduceHandler (MotorMotionSetting *mcstr);
-
-//机械臂运动算例
+//运动测试算例
 extern void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, 
-	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr);
-
-//测试算例
+	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr);				//机械臂运动算例
 extern void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr);				//滑轨上下测试
 extern void RepeatTestMotion (MotorMotionSetting *mcstr);							//传感器限位反复测试
 extern void Axis_Pos_Reset (MotorMotionSetting *mcstr);								//开机滑轨复位到零点
@@ -118,4 +106,3 @@ extern void Axis_Pos_Reset (MotorMotionSetting *mcstr);								//开机滑轨复
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon
-
