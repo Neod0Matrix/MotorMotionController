@@ -81,7 +81,7 @@ void TIM1_MecMotorDriver_Init (void)
 							TIM_CounterMode_Up, 
 							irq_Use, 						
 							0x03, 
-							0x05, 
+							0x04, 
 							ENABLE);
 	TIM1_OutputChannelConfig(MotorChnx, ENABLE);		//配置TIM1通道
 	MotorConfigStrParaInit(&st_motorAcfg);				//参数初始化
@@ -150,7 +150,8 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 //电机中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 {
-    if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)	//电机中断标志置位
+	//电机通道中断标志置位
+    if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)	
     {	
 		TIM_ClearITPendingBit(TIMERx_Number, MotorChnx);
 		
@@ -192,10 +193,11 @@ void TIM1_CC_IRQHandler (void)
 
 //电机驱动
 //传参：电机编号，结构体频率，结构体距离，使能开关
-void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
+void MotorBasicDriver (MotorMotionSetting *mcstr, MotorStartStop control)
 {	
-	if (control == ENABLE)
+	switch (control)
 	{
+	case StartRun:
 		//外部完成计算转储
 		if (mcstr -> SpeedFrequency != 0)
 			mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
@@ -210,17 +212,16 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 			mcstr -> divFreqCnt	= 0;
 			
 			//开关使能
-			TIM_CtrlPWMOutputs(TIMERx_Number, control);	//通道输出
-			TIM_Cmd(TIMERx_Number, control);			//TIMER使能选择
+			TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	//通道输出
+			TIM_Cmd(TIMERx_Number, ENABLE);				//TIMER使能选择
 			
 			mcstr -> MotorStatusFlag = Run;
 		}
-	}
-	else
-	{
+		break;
+	case StopRun:
 		//开关使能
-		TIM_CtrlPWMOutputs(TIMERx_Number, control);		//通道输出
-		TIM_Cmd(TIMERx_Number, control);				//TIMER使能选择
+		TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);		//通道输出
+		TIM_Cmd(TIMERx_Number, DISABLE);				//TIMER使能选择
 		
 		IO_MainPulse = MD_IO_Reset;
 		
@@ -229,6 +230,7 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 		mcstr -> MotorStatusFlag = Stew;		
 		mcstr -> divFreqCnt	= 0u;	
 		__ShellHeadSymbol__; U1SD("MotorDriver Emergency Stop\r\n");
+		break;
 	}
 }
 
@@ -239,7 +241,7 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 	//电机转向初始化
 	mcstr -> RevDirectionFlag = dir;
 	IO_Direction = mcstr -> RevDirectionFlag;	
-	mcstr -> SpeedFrequency = spfq;
+	mcstr -> SpeedFrequency = spfq;				//非S形加减速模式有效
 	mcstr -> MotorModeFlag = mrm;
 	mcstr -> DistanceUnitLS = lrs;
 	
@@ -262,16 +264,15 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 			//调用S形加减速频率-时间-脉冲数控制	
 			SigmodAcceDvalSpeed();						
 		else 
-			MotorMotionDriver(mcstr, DISABLE);
+			MotorBasicDriver(mcstr, StopRun);
 	}
 	//匀速法
 	else
 	{
-		//代替S形加减速使用固有换向频率	
 		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			MotorMotionDriver(mcstr, ENABLE);
+			MotorBasicDriver(mcstr, StartRun);
 		else 
-			MotorMotionDriver(mcstr, DISABLE);
+			MotorBasicDriver(mcstr, StopRun);
 	}
 }
 
@@ -286,14 +287,13 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 	{
 		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit, mcstr);
 		WaitForSR_Trigger(ULSR);						//等待传感器长期检测	
-		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 	else if (count % 2u != 0u && !DSrNLTri)				//奇数下降
 	{
 		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
 		WaitForSR_Trigger(DLSR);						//等待传感器长期检测
-		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
+	MotorBasicDriver(&st_motorAcfg, StopRun);
 }
 
 //传感器反复测试运动算例
@@ -342,7 +342,7 @@ void Axis_Pos_Reset (MotorMotionSetting *mcstr)
 		{
 			MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
 			WaitForSR_Trigger(DLSR);					//等待传感器长期检测
-			MotorMotionDriver(&st_motorAcfg, DISABLE);	//完成复位立即停止动作
+			MotorBasicDriver(&st_motorAcfg, StopRun);	//完成复位立即停止动作
 		}
 	}		
 }

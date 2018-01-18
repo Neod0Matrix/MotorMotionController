@@ -66,6 +66,9 @@ typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
 //线度角度切换(RA<->RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
+//电机启动制动
+typedef enum {StopRun = 0, StartRun = !StopRun} MotorStartStop;
+
 //电机调用结构体
 typedef __packed struct 						
 {
@@ -94,7 +97,7 @@ void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函�
 extern void MotorDriverLib_Init (void);												//总初始化封装库
 void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
-void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control);		//电机启动停止动作
+void MotorBasicDriver (MotorMotionSetting *mcstr, MotorStartStop control);			//电机底层驱动
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr);							//电机脉冲产生中断
 
 //运动测试算例

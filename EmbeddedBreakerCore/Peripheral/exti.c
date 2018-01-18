@@ -110,7 +110,7 @@ void EXTI9_5_IRQHandler (void)
 		/*
 			@EmbeddedBreakerCore Extern API Insert
 		*/
-		MotorMotionDriver(&st_motorAcfg, DISABLE); 
+		MotorBasicDriver(&st_motorAcfg, StopRun); 
 		
 		EMERGENCYSTOP;												
 		EMERGENCYSTOP_16;
@@ -136,7 +136,7 @@ void EXTI4_IRQHandler (void)										//机械臂传感器检测
 #endif
 	
 	if (ASES_Switch	== ASES_Enable && USrLTri)  		
-		MotorMotionDriver(&st_motorAcfg, DISABLE);
+		MotorBasicDriver(&st_motorAcfg, StopRun);
 	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);						//清除EXTI线路挂起位
 	
 #if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
@@ -152,7 +152,7 @@ void EXTI3_IRQHandler (void)										//机械臂传感器检测
 #endif
 	
 	if (ASES_Switch	== ASES_Enable && DSrLTri)  				
-		MotorMotionDriver(&st_motorAcfg, DISABLE);
+		MotorBasicDriver(&st_motorAcfg, StopRun);
 	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);						//清除EXTI线路挂起位
 	
 #if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
