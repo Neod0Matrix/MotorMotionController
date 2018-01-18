@@ -9,28 +9,13 @@
 
 //定时器配置
 //注意高级定时器18挂载在APB2总线上，通用定时器2345挂载在APB1总线上
-#define TIMERx_Number 					TIM1					//设置定时器编号，对应电机编号
-#define RCC_APBxPeriph_TIMERx 			RCC_APB2Periph_TIM1		//设置定时器挂载总线
-#define TIMERx_IRQn						TIM1_CC_IRQn			//通道中断编号
-#define MotorChnx						TIM_IT_CC1				//电机通道编号
+#define TIMERx_Number 			TIM1					//设置定时器编号，对应电机编号
+#define RCC_APBxPeriph_TIMERx 	RCC_APB2Periph_TIM1		//设置定时器挂载总线
+#define TIMERx_IRQn				TIM1_CC_IRQn			//通道中断编号
+#define MotorChnx				TIM_IT_CC1				//电机通道编号
 
 //声明电机参数结构体
 MotorMotionSetting st_motorAcfg;						
-
-//电机驱动参数结构体初始化
-void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
-{
-	mcstr -> ReversalCnt 		= 0u;			//脉冲计数器
-	mcstr -> ReversalRange 		= 0u;			//脉冲回收系数
-	mcstr -> RotationDistance 	= 0u;			//行距
-	mcstr -> SpeedFrequency 	= 0u;			//设定频率
-	mcstr -> divFreqCnt			= 0u;			//分频计数器	
-	mcstr -> CalDivFreqConst 	= 0u;			//分频系数
-	mcstr -> MotorStatusFlag	= Stew;
-	mcstr -> MotorModeFlag		= LimitRun;
-	mcstr -> DistanceUnitLS		= RadUnit;	
-	mcstr -> RevDirectionFlag	= Pos_Rev;
-}
 
 //主脉冲IO口初始化
 void PulseDriver_IO_Init (void)
@@ -65,10 +50,25 @@ void Direction_IO_Init (void)
 						EBO_Enable);
 }
 
+//电机驱动参数结构体初始化
+void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
+{
+	mcstr -> ReversalCnt 		= 0u;					//脉冲计数器
+	mcstr -> ReversalRange 		= 0u;					//脉冲回收系数
+	mcstr -> RotationDistance 	= 0u;					//行距
+	mcstr -> SpeedFrequency 	= 0u;					//设定频率
+	mcstr -> divFreqCnt			= 0u;					//分频计数器	
+	mcstr -> CalDivFreqConst 	= 0u;					//分频系数
+	mcstr -> MotorStatusFlag	= Stew;
+	mcstr -> MotorModeFlag		= LimitRun;
+	mcstr -> DistanceUnitLS		= RadUnit;	
+	mcstr -> RevDirectionFlag	= Pos_Rev;
+}
+
 //TIM1作为电机驱动定时器初始化
 void TIM1_MecMotorDriver_Init (void)
 {
-	RCC_Configuration();										//这里时钟选择为APB2的2倍，而APB2为36M，系统设置2倍频，TIM输入频率72Mhz
+	RCC_Configuration();										
 	ucTimerx_InitSetting(	TIMERx_Number, 
 							TIMERx_IRQn, 
 							RCC_APBxPeriph_TIMERx,
@@ -83,36 +83,36 @@ void TIM1_MecMotorDriver_Init (void)
 							0x03, 
 							0x05, 
 							ENABLE);
-	//参数初始化
-	MotorConfigStrParaInit(&st_motorAcfg);
+	TIM1_OutputChannelConfig(MotorChnx, ENABLE);		//配置TIM1通道
+	MotorConfigStrParaInit(&st_motorAcfg);				//参数初始化
 }	
 
 //电机驱动库初始化函数合并，对main函数接口
 void MotorDriverLib_Init (void)
 {
-	PulseDriver_IO_Init();									//脉冲IO口
-	Direction_IO_Init();									//方向IO口
-	TIM1_MecMotorDriver_Init();								//脉冲发生定时器
-	FreqDisperseTable_Create(st_motorAcfg);					//加减速表生成
+	PulseDriver_IO_Init();								//脉冲IO口
+	Direction_IO_Init();								//方向IO口
+	TIM1_MecMotorDriver_Init();							//脉冲发生定时器
+	FreqDisperseTable_Create(st_motorAcfg);				//加减速表生成
 }
 
 /*
 	定时器1作为电机控制定时器配置
 	传参：电机对应定时器通道，使能开关
 */
-void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
+void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control)
 {
 	TIM_OCInitTypeDef TIM_OCInitStructure; 
 	TIM_OCStructInit(&TIM_OCInitStructure);
 	
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle;         //管脚输出模式：翻转
-	TIM_OCInitStructure.TIM_Pulse = (TIMarrPeriod - 1) / 2;
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle; //管脚输出模式：翻转
+	//TIM_OCInitStructure.TIM_Pulse = (TIMarrPeriod - 1) / 2;
 	
-#ifdef PosLogicOperation										//正逻辑
+#ifdef PosLogicOperation								//正逻辑
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;//使能正向通道  
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;	//高有效 输出为正逻辑
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;//空闲状态下的非工作状态
-#else															//负逻辑
+#else													//负逻辑
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;//使能反向通道	 
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;	//平时为高，脉冲为低 输出为正逻辑
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCIdleState_Reset; 
@@ -122,9 +122,9 @@ void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
 	switch (Motorx_CCx)
 	{
 	case MotorChnx:
-		TIM_OC1Init(TIMERx_Number, &TIM_OCInitStructure);       //写入配置 
+		TIM_OC1Init(TIMERx_Number, &TIM_OCInitStructure);  //写入配置 
 		TIM_OC1PreloadConfig(TIMERx_Number, TIM_OCPreload_Disable);
-#ifdef UseTimerPWMorOCChannel									//使能TIMx在CCRx上的预装载寄存器(与通道IO挂钩)
+#ifdef UseTimerPWMorOCChannel							//使能TIMx在CCRx上的预装载寄存器(与通道IO挂钩)
 		TIM_OC1PreloadConfig(TIMERx_Number, TIM_OCPreload_Enable);
 #endif
 		TIM_SetCompare1(TIMERx_Number, TimerInitCounterValue);
@@ -132,9 +132,9 @@ void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
 	//以下可扩展
 	}
   
-    TIM_ClearFlag(TIMERx_Number, Motorx_CCx);					//清中断
-	TIM_ARRPreloadConfig(TIMERx_Number, ENABLE);				//使能TIMx在ARR上的预装载寄存器，如果中断中不修改ARR值则此函数无影响
-    TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);			//TIMx中断源设置，开启相应通道的捕捉比较中断
+    TIM_ClearFlag(TIMERx_Number, Motorx_CCx);			//清中断
+	TIM_ARRPreloadConfig(TIMERx_Number, ENABLE);		//使能TIMx在ARR上的预装载寄存器，如果中断中不修改ARR值则此函数无影响
+    TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);	//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
 //更新行距计算
@@ -150,26 +150,26 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 //电机中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 {
-    if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)		//电机中断标志置位
+    if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)	//电机中断标志置位
     {	
 		TIM_ClearITPendingBit(TIMERx_Number, MotorChnx);
 		
 		//脉冲自动完成
 		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
 		{
-			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
-			TIM_Cmd(TIMERx_Number, DISABLE);					//TIM1关闭
+			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);	//通道输出关闭
+			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM1关闭
 			IO_MainPulse = MD_IO_Reset;
-			mcstr -> MotorStatusFlag = Stew;					//标志复位
+			mcstr -> MotorStatusFlag = Stew;			//标志复位
 			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
-			return;												//函数遇到return将结束
+			return;										//函数遇到return将结束
 		}
 		//分频产生对应的脉冲频率
 		if (++mcstr -> divFreqCnt == mcstr -> CalDivFreqConst)
 		{
 			mcstr -> divFreqCnt = 0;
 			IO_MainPulse = !IO_MainPulse;			
-			mcstr -> ReversalCnt++;								//对脉冲计数
+			mcstr -> ReversalCnt++;						//对脉冲计数
 		}
     }
 }
@@ -197,25 +197,21 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 	if (control == ENABLE)
 	{
 		//外部完成计算转储
-		if (mcstr -> RotationDistance != 0)
-			DistanceAlgoUpdate(mcstr);
 		if (mcstr -> SpeedFrequency != 0)
 			mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
+		if (mcstr -> RotationDistance != 0)
+			DistanceAlgoUpdate(mcstr);
 		
 		//报警状态不可驱动电机运转		
 		if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 && Return_Error_Type == Error_Clear)								
-		{		
-			//更新配置				
-			TIM1_MotorMotionTimeBase(MotorChnx, control);
-			//TIM_SetCounter(TIMERx_Number, TimerInitCounterValue);	//计数清0
-			
+		{					
 			//计数器初始化
 			mcstr -> ReversalCnt = 0;			
 			mcstr -> divFreqCnt	= 0;
 			
 			//开关使能
-			TIM_CtrlPWMOutputs(TIMERx_Number, control);				//通道输出
-			TIM_Cmd(TIMERx_Number, control);						//TIMER使能选择
+			TIM_CtrlPWMOutputs(TIMERx_Number, control);	//通道输出
+			TIM_Cmd(TIMERx_Number, control);			//TIMER使能选择
 			
 			mcstr -> MotorStatusFlag = Run;
 		}
@@ -223,8 +219,8 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 	else
 	{
 		//开关使能
-		TIM_CtrlPWMOutputs(TIMERx_Number, control);					//通道输出
-		TIM_Cmd(TIMERx_Number, control);							//TIMER使能选择
+		TIM_CtrlPWMOutputs(TIMERx_Number, control);		//通道输出
+		TIM_Cmd(TIMERx_Number, control);				//TIMER使能选择
 		
 		IO_MainPulse = MD_IO_Reset;
 		
@@ -236,8 +232,9 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 	}
 }
 
-//该运动算例包含对步进电机S形加减速的设置，可以在config.c中选择是否使用这一功能
-void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
+//模块同名函数，基准调用
+void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
+	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
 {	
 	//电机转向初始化
 	mcstr -> RevDirectionFlag = dir;
@@ -262,7 +259,8 @@ void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, MotorRunMode mrm, L
 	{
 		//传感器初始限位
 		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			SigmodAcceDvalSpeed();			//调用S形加减速频率-时间-脉冲数控制	
+			//调用S形加减速频率-时间-脉冲数控制	
+			SigmodAcceDvalSpeed();						
 		else 
 			MotorMotionDriver(mcstr, DISABLE);
 	}
@@ -286,14 +284,14 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 	//滑轨上下测试，通用传感器长时间触发检测配置
 	if (count % 2u == 0u && !USrNLTri)					//偶数上升
 	{
-		MotorBaseMotion(2000, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit, mcstr);
-		WaitForSR_Trigger(ULSR);					//等待传感器长期检测	
+		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit, mcstr);
+		WaitForSR_Trigger(ULSR);						//等待传感器长期检测	
 		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 	else if (count % 2u != 0u && !DSrNLTri)				//奇数下降
 	{
-		MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
-		WaitForSR_Trigger(DLSR);					//等待传感器长期检测
+		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
+		WaitForSR_Trigger(DLSR);						//等待传感器长期检测
 		MotorMotionDriver(&st_motorAcfg, DISABLE);
 	}
 }
@@ -332,16 +330,18 @@ void RepeatTestMotion (MotorMotionSetting *mcstr)
 /*
 	开机自动机械臂复位到零点
 	完成这一步机械臂坐标系就建立完成，确定零点，以绝对坐标运动
+	如果不构建绝对坐标系就没有必要使能该函数
 */
 void Axis_Pos_Reset (MotorMotionSetting *mcstr)
 {
 	//检测是否开启复位功能，且是否处于允许复位的运行状态
 	if (Init_Reset_Switch == Reset_Enable && pwsf == JBoot) 
 	{
-		if (!DSrNLTri)								//起始时判断是否在原位置
+		mcstr -> SpeedFrequency = ResetStartFrequency;	//赋给起始频率
+		if (!DSrNLTri)									//起始时判断是否在原位置
 		{
-			MotorBaseMotion(2000, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);//默认以最大运动距离降下，适当调节Distance_Ratio
-			WaitForSR_Trigger(DLSR);				//等待传感器长期检测
+			MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
+			WaitForSR_Trigger(DLSR);					//等待传感器长期检测
 			MotorMotionDriver(&st_motorAcfg, DISABLE);	//完成复位立即停止动作
 		}
 	}		

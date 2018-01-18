@@ -62,6 +62,7 @@ void RCC_Configuration (void)
 			AHB主要负责外部存储器时钟
 			APB2负责AD，GPIO，高级TIM，USART1
 			APB1负责DA，USB，SPI，I2C，CAN，USART2 USART3 UART4 UART5，普通TIM
+			这里时钟选择为APB2的2倍，而APB2为36M，系统设置2倍频，TIM输入频率72Mhz
 		*/
         //设置AHB时钟(HCLK)
         RCC_HCLKConfig(RCC_SYSCLK_Div1); 			//RCC_SYSCLK_Div1——AHB时钟

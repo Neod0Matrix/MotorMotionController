@@ -36,6 +36,8 @@
 #ifndef DivFreqConst					
 #define DivFreqConst(targetFreq) 		(uint16_t)(((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1)
 #endif
+//复位起始频率
+#define ResetStartFrequency				3000		
 
 //行距逆向算法，用于机械臂绝对坐标构建(坐标调试模式使用)
 #ifndef DistanceFeedback
@@ -90,13 +92,13 @@ void Direction_IO_Init (void);
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);							//结构体成员初始化
 void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函数声明		
 extern void MotorDriverLib_Init (void);												//总初始化封装库
-void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式配置
+void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
 void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control);		//电机启动停止动作
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr);							//电机脉冲产生中断
 
 //运动测试算例
-extern void MotorBaseMotion (u16 spfq, u16 mvdis, RevDirection dir, 
+extern void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
 	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr);				//机械臂运动算例
 extern void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr);				//滑轨上下测试
 extern void RepeatTestMotion (MotorMotionSetting *mcstr);							//传感器限位反复测试
