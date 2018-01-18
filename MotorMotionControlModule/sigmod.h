@@ -17,24 +17,25 @@
 	>>	plot(x, y)
 	只取整数进行演算
 	调参方法：优化曲线A，B值
+	不建议把最低频率设置到0
 */	
 #ifndef sigmodAlgo
 #define sigmodAlgo(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
 #endif
 
 //X_Range / Num_Range即x取值间隔，最好为整数			
-#define Num_Range						40u		//x取值个数	
-#define X_Range							400u	//x取值范围，越大曲线越平滑(通常并不需要多平滑)
+#define Num_Range						40u				//x取值个数	
+#define X_Range							400u			//x取值范围，越大曲线越平滑(通常并不需要多平滑)
 
 //sigmod函数参数结构体
 typedef __packed struct 
 {
-	u16 	freq_max;							//参数freq_max，设置最高达到频率，但要注意抑制机械振动
-	u16 	freq_min;							//参数freq_min，设置最小换向频率
-	float 	para_a;								//参数para_a，越小曲线越平滑
-	float 	para_b;								//参数para_b，越大曲线上升下降越缓慢
-	float 	ratio;								//参数ratio，S形加减速阶段分化比例
-	u16 	disp_table[Num_Range];				//整型离散表
+	u16 	freq_max;									//参数freq_max，设置最高达到频率，但要注意抑制机械振动
+	u16 	freq_min;									//参数freq_min，设置最小换向频率
+	float 	para_a;										//参数para_a，越小曲线越平滑
+	float 	para_b;										//参数para_b，越大曲线上升下降越缓慢
+	float 	ratio;										//参数ratio，S形加减速阶段分化比例
+	u16 	disp_table[Num_Range];						//整型离散表
 } Sigmod_Parameter;		
 extern Sigmod_Parameter asp, dsp;
 

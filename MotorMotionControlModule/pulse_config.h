@@ -12,23 +12,6 @@
 	通用分频数=500000/定时器时基
 */
 
-//定时器设置参数
-#define TargetTimeBase					10								//定时器单个目标定时时基，单位us
-#define TIMPrescaler					71								//psc 时钟预分频数，通用71分频
-#define TIMarrPeriod					9								//arr 自动重装值，最大捕获范围0xFFFF
-#define FreqMaxThreshold				500000L							//频率计数器上限阈值
-//分频数计算
-#ifndef DivFreqConst					
-#define DivFreqConst(fre) 				(uint32_t)((FreqMaxThreshold / TargetTimeBase) / fre)
-#endif
-
-//脉冲发送结束后电机驱动IO口的复位状态
-#ifdef use_ULN2003A														//ULN2003A反相设置
-#define MD_IO_Reset						lvl								//反相拉低
-#else 
-#define MD_IO_Reset						hvl								//正相拉高
-#endif
-
 //脉冲IO口
 #define IO_MainPulse 					PBout(0)		//主脉冲输出
 #define IO_Direction 					PAout(6)		//方向线输出
@@ -44,13 +27,30 @@
 #define RadUnitConst					(Pulse_per_Loop / 360)
 #define LineUnitConst					(Pulse_per_Loop / OneLoopHeight)
 
+//定时器设置参数
+#define TIMPrescaler					71				//psc 时钟预分频数，通用71分频
+#define TIMarrPeriod					9				//arr 自动重装值，最大捕获范围0xFFFF
+#define TargetTimeBase					TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
+#define FreqMaxThreshold				500000L			//频率计数器上限阈值
+//分频数计算
+#ifndef DivFreqConst					
+#define DivFreqConst(targetFreq) 		(uint16_t)(((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1)
+#endif
+
 //行距逆向算法，用于机械臂绝对坐标构建(坐标调试模式使用)
 #ifndef DistanceFeedback
 #define DistanceFeedback(pulc, perloop) ((((pulc + 1u) / 2u) / perloop) * OneLoopHeight)
 #endif
 
+//脉冲发送结束后电机驱动IO口的复位状态
+#ifdef use_ULN2003A										//ULN2003A反相设置
+#define MD_IO_Reset						lvl				//反相拉低
+#else 
+#define MD_IO_Reset						hvl				//正相拉高
+#endif
+
 //方向选择
-#ifdef use_ULN2003A								//ULN2003A反相设置
+#ifdef use_ULN2003A										//ULN2003A反相设置
 typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;		
 #else
 typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;	
@@ -64,23 +64,23 @@ typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
 //线度角度切换(RA<->RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
-//结构体声明
+//电机调用结构体
 typedef __packed struct 						
 {
 	//基础运动控制
-    volatile uint32_t 	ReversalCnt;			//脉冲计数器
-	uint32_t			ReversalRange;			//脉冲回收系数
-    uint32_t			RotationDistance;		//行距
-    uint16_t 			SpeedFrequency;			//设定频率
-	volatile uint16_t	divFreqCnt;				//分频计数器
-	uint16_t			CalDivFreqConst;		//分频系数
+    volatile uint32_t 	ReversalCnt;					//脉冲计数器
+	uint32_t			ReversalRange;					//脉冲回收系数
+    uint32_t			RotationDistance;				//行距
+    uint16_t 			SpeedFrequency;					//设定频率
+	volatile uint16_t	divFreqCnt;						//分频计数器
+	uint16_t			CalDivFreqConst;				//分频系数
 	//电机状态标志
-	MotorRunStatus		MotorStatusFlag;		//运行状态
-	MotorRunMode		MotorModeFlag;			//运行模式
-	LineRadSelect		DistanceUnitLS;			//线度角度切换
-	RevDirection		RevDirectionFlag;		//方向标志
+	MotorRunStatus		MotorStatusFlag;				//运行状态
+	MotorRunMode		MotorModeFlag;					//运行模式
+	LineRadSelect		DistanceUnitLS;					//线度角度切换
+	RevDirection		RevDirectionFlag;				//方向标志
 } MotorMotionSetting;
-extern MotorMotionSetting st_motorAcfg;	
+extern MotorMotionSetting st_motorAcfg;					//测试步进电机A
 
 //电机控制IO初始化
 void PulseDriver_IO_Init (void);

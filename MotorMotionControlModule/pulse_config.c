@@ -74,6 +74,7 @@ void TIM1_MecMotorDriver_Init (void)
 							RCC_APBxPeriph_TIMERx,
 							//重映射GPIO，避免与USART1和OLED I2C冲突(PA9 PA10 PB13 PB15)
 							GPIO_FullRemap_TIM1,
+							//此处写入定时器的定时值
 							TIMarrPeriod, 
 							TIMPrescaler, 
 							TIM_CKD_DIV1, 
@@ -105,6 +106,7 @@ void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
 	TIM_OCStructInit(&TIM_OCInitStructure);
 	
     TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle;         //管脚输出模式：翻转
+	TIM_OCInitStructure.TIM_Pulse = (TIMarrPeriod - 1) / 2;
 	
 #ifdef PosLogicOperation										//正逻辑
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;//使能正向通道  
@@ -131,7 +133,7 @@ void TIM1_MotorMotionTimeBase (uint16_t Motorx_CCx, FunctionalState control)
 	}
   
     TIM_ClearFlag(TIMERx_Number, Motorx_CCx);					//清中断
-	TIM_ARRPreloadConfig(TIMERx_Number, ENABLE);				//使能TIMx在ARR上的预装载寄存器
+	TIM_ARRPreloadConfig(TIMERx_Number, ENABLE);				//使能TIMx在ARR上的预装载寄存器，如果中断中不修改ARR值则此函数无影响
     TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);			//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
@@ -159,6 +161,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 			TIM_Cmd(TIMERx_Number, DISABLE);					//TIM1关闭
 			IO_MainPulse = MD_IO_Reset;
 			mcstr -> MotorStatusFlag = Stew;					//标志复位
+			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
 			return;												//函数遇到return将结束
 		}
 		//分频产生对应的脉冲频率
@@ -194,23 +197,25 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 	if (control == ENABLE)
 	{
 		//外部完成计算转储
-		DistanceAlgoUpdate(mcstr);
-		mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
+		if (mcstr -> RotationDistance != 0)
+			DistanceAlgoUpdate(mcstr);
+		if (mcstr -> SpeedFrequency != 0)
+			mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
 		
 		//报警状态不可驱动电机运转		
-		if (mcstr -> SpeedFrequency != 0u && mcstr -> RotationDistance != 0 && Return_Error_Type == Error_Clear)								
+		if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 && Return_Error_Type == Error_Clear)								
 		{		
 			//更新配置				
-			TIM1_MotorMotionTimeBase(MotorChnx, ENABLE);
-			TIM_SetCounter(TIMERx_Number, TimerInitCounterValue);		//计数清0
+			TIM1_MotorMotionTimeBase(MotorChnx, control);
+			//TIM_SetCounter(TIMERx_Number, TimerInitCounterValue);	//计数清0
 			
 			//计数器初始化
-			mcstr -> ReversalCnt = 0u;			
-			mcstr -> divFreqCnt	= 0u;
+			mcstr -> ReversalCnt = 0;			
+			mcstr -> divFreqCnt	= 0;
 			
 			//开关使能
-			TIM_CtrlPWMOutputs(TIMERx_Number, control);					//通道输出
-			TIM_Cmd(TIMERx_Number, control);							//TIMER使能选择
+			TIM_CtrlPWMOutputs(TIMERx_Number, control);				//通道输出
+			TIM_Cmd(TIMERx_Number, control);						//TIMER使能选择
 			
 			mcstr -> MotorStatusFlag = Run;
 		}
@@ -227,6 +232,7 @@ void MotorMotionDriver (MotorMotionSetting *mcstr, FunctionalState control)
 		mcstr -> ReversalCnt = mcstr -> ReversalRange;	
 		mcstr -> MotorStatusFlag = Stew;		
 		mcstr -> divFreqCnt	= 0u;	
+		__ShellHeadSymbol__; U1SD("MotorDriver Emergency Stop\r\n");
 	}
 }
 

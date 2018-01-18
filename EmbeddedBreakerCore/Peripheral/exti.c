@@ -107,6 +107,11 @@ void EXTI9_5_IRQHandler (void)
 	*/
 	if (StewEXTI_Switch == StewEXTI_Enable && STEW_LTrigger)  		//长按检测急停
 	{
+		/*
+			@EmbeddedBreakerCore Extern API Insert
+		*/
+		MotorMotionDriver(&st_motorAcfg, DISABLE); 
+		
 		EMERGENCYSTOP;												
 		EMERGENCYSTOP_16;
 		
