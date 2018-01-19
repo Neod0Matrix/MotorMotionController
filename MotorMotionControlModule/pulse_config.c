@@ -85,6 +85,9 @@ void TIM1_MecMotorDriver_Init (void)
 							ENABLE);
 	TIM1_OutputChannelConfig(MotorChnx, ENABLE);		//配置TIM1通道
 	MotorConfigStrParaInit(&st_motorAcfg);				//参数初始化
+	//IO初始化拉高
+	IO_MainPulse = MD_IO_Reset;
+	IO_Direction = MD_IO_Reset;
 }	
 
 //电机驱动库初始化函数合并，对main函数接口
@@ -137,13 +140,23 @@ void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control)
     TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);	//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
+//频率更新
+void FrequencyAlgoUpdate (MotorMotionSetting *mcstr)
+{
+	if (mcstr -> SpeedFrequency != 0)
+		mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
+}
+
 //更新行距计算
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 {
-	switch (mcstr -> DistanceUnitLS)
+	if (mcstr -> RotationDistance != 0)
 	{
-	case RadUnit: 	mcstr -> ReversalRange = 2 * RadUnitConst * mcstr -> RotationDistance - 1u; 	break;
-	case LineUnit: 	mcstr -> ReversalRange = 2 * LineUnitConst * mcstr -> RotationDistance - 1u; 	break;
+		switch (mcstr -> DistanceUnitLS)
+		{
+		case RadUnit: 	mcstr -> ReversalRange = 2 * RadUnitConst * mcstr -> RotationDistance - 1u; 	break;
+		case LineUnit: 	mcstr -> ReversalRange = 2 * LineUnitConst * mcstr -> RotationDistance - 1u; 	break;
+		}
 	}
 }
 
@@ -183,8 +196,11 @@ void TIM1_CC_IRQHandler (void)
 #endif
 	
 	//仅在无错误状态下使能
-	if (Return_Error_Type == Error_Clear)						
+	if (Return_Error_Type == Error_Clear)			
+	{		
 		MotorPulseProduceHandler(&st_motorAcfg);
+		//以下可以添加更多的电机中断
+	}
 	
 #if SYSTEM_SUPPORT_OS
 	OSIntExit();    
@@ -193,18 +209,14 @@ void TIM1_CC_IRQHandler (void)
 
 //电机驱动
 //传参：电机编号，结构体频率，结构体距离，使能开关
-void MotorBasicDriver (MotorMotionSetting *mcstr, MotorStartStop control)
+void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 {	
-	switch (control)
+	switch (sw)
 	{
 	case StartRun:
-		//外部完成计算转储
-		if (mcstr -> SpeedFrequency != 0)
-			mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
-		if (mcstr -> RotationDistance != 0)
-			DistanceAlgoUpdate(mcstr);
-		
-		//报警状态不可驱动电机运转		
+		FrequencyAlgoUpdate(mcstr);						//更新频率
+		DistanceAlgoUpdate(mcstr);						//更新行距
+		//对结果判定
 		if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 && Return_Error_Type == Error_Clear)								
 		{					
 			//计数器初始化
