@@ -178,7 +178,7 @@ Motion_Select SingleStepDebug_linker (void)
 	//急停
 	case Stew_All: 		
 		MotorBasicDriver(&st_motorAcfg, StopRun); 
-		EMERGENCYSTOP;									//串口急停
+		EMERGENCYSTOP;									//协议通信急停
 		EMERGENCYSTOP_16;										
 		break;
 	//上下行基本算例

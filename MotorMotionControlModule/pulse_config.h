@@ -16,26 +16,16 @@
 #define IO_MainPulse 					PBout(0)		//主脉冲输出
 #define IO_Direction 					PAout(6)		//方向线输出
 //测试用宏定义
-#define StepMotorZero					200u			//正常一圈(步距角)
-#define Subdivision						16u				//细分数
-#define Pulse_per_Loop 					(StepMotorZero * Subdivision)//实际脉冲个数/圈	
+#define StepAngle						1.8f			//步距角
+#define OneLoopPerPulse 				((360.f / StepAngle) * DriverDivision)//实际脉冲个数/圈	
 
 //角度线度转换
 //角度单位：一圈即360度；线度单位：一圈即5mm
 #define MaxLimit_Dis					315				//滑轨限位
 #define OneLoopHeight					5				//步进电机转一圈上升高度
-#define RadUnitConst					(Pulse_per_Loop / 360)
-#define LineUnitConst					(Pulse_per_Loop / OneLoopHeight)
+#define RadUnitConst					(OneLoopPerPulse / 360)
+#define LineUnitConst					(OneLoopPerPulse / OneLoopHeight)
 
-//定时器设置参数
-#define TIMPrescaler					71				//psc 时钟预分频数，通用71分频
-#define TIMarrPeriod					9				//arr 自动重装值，最大捕获范围0xFFFF
-#define TargetTimeBase					TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
-#define FreqMaxThreshold				500000L			//频率计数器上限阈值
-//分频数计算
-#ifndef DivFreqConst					
-#define DivFreqConst(targetFreq) 		(uint16_t)(((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1)
-#endif
 //复位起始频率
 #define ResetStartFrequency				3000		
 

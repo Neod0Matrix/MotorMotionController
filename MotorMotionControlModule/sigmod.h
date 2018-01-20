@@ -41,7 +41,7 @@ extern Sigmod_Parameter asp, dsp;
 
 //区间脉冲总数计算
 #ifndef PulseWholeNbr
-#define PulseWholeNbr(d, r)				(d * Pulse_per_Loop * r)
+#define PulseWholeNbr(d, r)				(d * OneLoopPerPulse * r)
 #endif
 
 //均匀时间分配，单位ms

@@ -5,14 +5,34 @@
 /*
 	启用高级定时器1对脉冲/PWM进行规划
 	这里配给电机脉冲的都是高级定时器的比较输出模式
+	关于分频的特性，分频数越大，频率越小，反过来分频数越小频率越大
+	定时时基越小，高频越准，定时时基越大，低频越准
 */
 
 //定时器配置
 //注意高级定时器18挂载在APB2总线上，通用定时器2345挂载在APB1总线上
-#define TIMERx_Number 			TIM1					//设置定时器编号，对应电机编号
-#define RCC_APBxPeriph_TIMERx 	RCC_APB2Periph_TIM1		//设置定时器挂载总线
-#define TIMERx_IRQn				TIM1_CC_IRQn			//通道中断编号
-#define MotorChnx				TIM_IT_CC1				//电机通道编号
+#define TIMERx_Number 				TIM1				//设置定时器编号，对应电机编号
+#define RCC_APBxPeriph_TIMERx 		RCC_APB2Periph_TIM1	//设置定时器挂载总线
+#define TIMERx_IRQn					TIM1_CC_IRQn		//通道中断编号
+#define MotorChnx					TIM_IT_CC1			//电机通道编号
+//定时器设置参数
+#define DriverDivision				16					//细分数
+/*
+	arr 自动重装值，最大捕获范围0xFFFF
+	根据TB6560步进电机驱动器特性，细分数越大，可以接受的频率就越大
+*/
+#if DriverDivision >= 8									//8个细分及其以上设置到5us
+#define TIMarrPeriod				9					
+#elif DriverDivision <= 4								//4个细分及其以下设置到50us
+#define TIMarrPeriod				99
+#endif
+#define TIMPrescaler				35					//psc 时钟预分频数
+#define TargetTimeBase				TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
+#define FreqMaxThreshold			500000L				//频率计数器上限阈值
+//分频数计算
+#ifndef DivFreqConst					
+#define DivFreqConst(targetFreq) 	(uint16_t)(((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1)
+#endif
 
 //声明电机参数结构体
 MotorMotionSetting st_motorAcfg;						
