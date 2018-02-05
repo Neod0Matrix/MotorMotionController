@@ -1,5 +1,4 @@
-#ifndef __SIGMOD_H__
-#define __SIGMOD_H__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
@@ -63,8 +62,6 @@ void sigmodPara_Init (void);									//参数初始化
 extern void FreqDisperseTable_Create (MotorMotionSetting mc);	//得到加减速表
 //S型加减速电机控制实现
 extern void SigmodAcceDvalSpeed (void);
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

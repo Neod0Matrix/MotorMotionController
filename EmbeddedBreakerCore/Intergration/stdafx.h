@@ -69,8 +69,11 @@
 //UI
 #include "ui.h"											//OLED UI sample
 
-//MotorMotionControlModule链接库
-#include "link.h"
+//链接所有MotorMotionControl模块的头文件
+#include "limit_sensor.h"								//限位传感器
+#include "pulse_config.h"								//电机脉冲配置
+#include "sigmod.h"										//S形加减速
+#include "link.h"										//模块调用链接文件
 
 //===================================================================================================
 //code by </MATRIX>@Neod Anderjon

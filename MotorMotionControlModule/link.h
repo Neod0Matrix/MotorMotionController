@@ -1,16 +1,10 @@
-#ifndef __LINK_H__
-#define __LINK_H__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
 //====================================================================================================
 //模块MotorMotionControl对框架EmbeddBreakerCore的链接
 //该文件需要添加到stdafx.h内生效
-
-//链接所有MotorMotionControl模块的头文件
-#include "limit_sensor.h"
-#include "pulse_config.h"
-#include "sigmod.h"
 
 //MCU资源
 #define _MCU_Model_				"STM32F103RET6"			//主控芯片型号
@@ -98,8 +92,6 @@ void ModuleMMC_urcDebugHandler (u8 ed_status, Module_SwitchNbr sw_type);
 
 void OLED_ScreenP4_Const (void);
 void OLED_DisplayMMC (MotorMotionSetting *mcstr);
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

@@ -1,5 +1,4 @@
-#ifndef __LIMIT_SENSOR_H__
-#define __LIMIT_SENSOR_H__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //====================================================================================================
@@ -51,8 +50,6 @@ Sensor_MapTable Sensor_Scan (Input_LoogTrigger mode);						//检测触发
 
 //判断等待触发封装
 extern void WaitForSR_Trigger (Sensor_Number sr_nbr);
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

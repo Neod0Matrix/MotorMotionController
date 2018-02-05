@@ -134,8 +134,8 @@ void USART1_Init (u32 bound)
 
 	//USART1 NVIC 配置
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;		//USART1中断
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;//抢占优先级2
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;	//子优先级1
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;//抢占优先级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;	//子优先级
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
 	NVIC_Init(&NVIC_InitStructure);							//根据指定的参数初始化NVIC寄存器
   

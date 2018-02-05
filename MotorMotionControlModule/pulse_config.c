@@ -87,8 +87,7 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 
 //TIM1作为电机驱动定时器初始化
 void TIM1_MecMotorDriver_Init (void)
-{
-	RCC_Configuration();										
+{				
 	ucTimerx_InitSetting(	TIMERx_Number, 
 							TIMERx_IRQn, 
 							RCC_APBxPeriph_TIMERx,

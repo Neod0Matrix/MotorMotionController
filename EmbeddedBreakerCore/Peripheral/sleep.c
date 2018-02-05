@@ -20,7 +20,6 @@ void mcu_SleepMode (void)
 void mcu_StopMode (void)
 {
     PWR_EnterSTOPMode(PWR_Regulator_ON, PWR_STOPEntry_WFI);//进入停止模式
-    RCC_Configuration(9);							//配置RCC
 }
 
 //挂起处理
@@ -103,8 +102,8 @@ void WKUP_Init (void)
 							EXTI_Mode_Interrupt, 
 							EXTI_Trigger_Rising, 
 							EXTI0_IRQn, 
-							0x02, 
-							0x05);
+							0x03, 
+							0x00);
 
 	if (Stby_Switch	== Stby_Enable)					//开机待机功能使能
 		if (Check_WKUP() == False) Sys_Standby();    

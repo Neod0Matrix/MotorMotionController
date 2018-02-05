@@ -65,15 +65,14 @@ void bspPeriSysCalls (void)
 //只对main.c有效 初始化底层硬件 
 static void preSetUpHardware (void)
 {
+	RCC_Configuration(RCCMultipConst);					//@72MHz时钟主频(默认)
 	pwsf = JBoot;										//系统刚启动
 	
 	NVIC_Configuration();								//设置中断优先级分组
 	Universal_Resource_Config();						//统一资源配置器
-	
     bspPeriSysCalls();									//初始化底层函数封装
 	
 	OLED_DisplayInitConst();							//UI初始化
-	
 	Axis_Pos_Reset(&st_motorAcfg);						//滑轨复位
 	Response_Strings();									//与上位机通信的起始标志，表示控制器已初始化完成
 }

@@ -1,5 +1,4 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__									
+#pragma once								
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
@@ -26,7 +25,11 @@
 #define __FunnyWord__			"(ಡωಡ)"					//滑稽颜文字
 
 //嵌入式系统版本
-#define __OS_Version__			"uC/OS-III v3p03"		//ucosiii		
+#define __OS_Version__			"uC/OS-III v3p03"		//ucosiii	
+
+//时钟设置
+#define InputOSCFreq			8						//输入晶振频率
+#define RCCMultipConst			(72 / InputOSCFreq)		//倍频系数
 
 /*
 	常用数据类型宏定义本质：
@@ -48,8 +51,6 @@ void bspPeriSysCalls (void);							//初始化函数封装，好让做的工作�
 static void preSetUpHardware (void);					//开始进入任务前的准备工作
 static void stackTaskManager (void);					//任务管理栈
 int main (int argc, char *argv[], char *envp[]);		
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

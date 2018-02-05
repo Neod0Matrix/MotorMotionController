@@ -16,7 +16,6 @@ void PVD_Init_Config (void)
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	
-    RCC_Configuration(9);								//配置RCC
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE); //开启PVD时钟
 	
 	//PVD外部中断
@@ -37,7 +36,7 @@ void PVD_Init_Config (void)
 	
     NVIC_InitStructure.NVIC_IRQChannel = PVD_IRQn;
 	//优先级要高于除外部中断的其他中断
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x02;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);

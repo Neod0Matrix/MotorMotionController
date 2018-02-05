@@ -1,5 +1,4 @@
-#ifndef __EXTI_H__
-#define __EXTI_H__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
@@ -24,8 +23,6 @@ void ucEXTI_ModeConfig (
 					);						
 
 void EXTI_Config_Init (void);										//EXTI初始化配置
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

@@ -39,8 +39,6 @@ void ucEXTI_ModeConfig (
 //外部中断初始化函数
 void EXTI_Config_Init (void)
 {
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
-   
 	//STEW(正常状态低电平，触发拉高) PB8	
 	if (StewEXTI_Switch == StewEXTI_Enable)
 	{
@@ -53,7 +51,7 @@ void EXTI_Config_Init (void)
 							GPIOC,					
 							NI,				
 							EBO_Disable);
-		//PB8 STEW
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);					//外部中断，需要使能AFIO时钟
 		ucEXTI_ModeConfig(	GPIO_PortSourceGPIOB, 
 							GPIO_PinSource8, 
 							Stew_EXTI_Line, 
@@ -61,7 +59,7 @@ void EXTI_Config_Init (void)
 							EXTI_Trigger_Rising, 
 							EXTI9_5_IRQn, 
 							0x01, 
-							0x01);
+							0x03);
 	}
 						
 	/*
@@ -72,6 +70,7 @@ void EXTI_Config_Init (void)
 		//先初始化IO口
 		Sensor_IO_Init();
 		//PB4 A2U
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
 		ucEXTI_ModeConfig(
 							GPIO_PortSourceGPIOB, 
 							GPIO_PinSource4, 
@@ -83,6 +82,7 @@ void EXTI_Config_Init (void)
 							0x03);
 							
 		//PB3 A2D
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
 		ucEXTI_ModeConfig(
 							GPIO_PortSourceGPIOB, 
 							GPIO_PinSource3, 
@@ -105,7 +105,7 @@ void EXTI9_5_IRQHandler (void)
 	/*
 		@EmbeddedBreakerCore Extern API Insert
 	*/
-	if (StewEXTI_Switch == StewEXTI_Enable && STEW_LTrigger)  		//长按检测急停
+	if (StewEXTI_Switch == StewEXTI_Enable && EXTI_GetITStatus(EXTI_Line0) != RESET)//长按检测急停
 	{
 		/*
 			@EmbeddedBreakerCore Extern API Insert
@@ -114,7 +114,6 @@ void EXTI9_5_IRQHandler (void)
 		
 		EMERGENCYSTOP;												
 		EMERGENCYSTOP_16;
-		
 		while (STEW_LTrigger);										//等待急停释放，允许长期检测
 		ERROR_CLEAR;												//急停复位后自动清除警报	
 	}
@@ -135,8 +134,10 @@ void EXTI4_IRQHandler (void)										//机械臂传感器检测
 	OSIntEnter();    
 #endif
 	
-	if (ASES_Switch	== ASES_Enable && USrLTri)  		
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
+	{
 		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
 	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);						//清除EXTI线路挂起位
 	
 #if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
@@ -151,8 +152,10 @@ void EXTI3_IRQHandler (void)										//机械臂传感器检测
 	OSIntEnter();    
 #endif
 	
-	if (ASES_Switch	== ASES_Enable && DSrLTri)  				
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
+	{		
 		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
 	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);						//清除EXTI线路挂起位
 	
 #if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS

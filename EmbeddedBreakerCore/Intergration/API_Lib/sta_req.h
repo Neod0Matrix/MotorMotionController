@@ -1,5 +1,4 @@
-#ifndef __STA_REQ__
-#define __STA_REQ__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
@@ -16,8 +15,6 @@ extern uint32_t Get_BSP_CPU_ClkFreq (void);
 extern void PreTesFuncAlgInterface (void);		
 //协议请求
 extern void displaySystemInfo (void);
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

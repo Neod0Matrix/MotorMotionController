@@ -1,5 +1,4 @@
-#ifndef __PULSE_CONFIG_H__
-#define __PULSE_CONFIG_H__
+#pragma once
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
@@ -97,8 +96,6 @@ extern void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 extern void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr);				//滑轨上下测试
 extern void RepeatTestMotion (MotorMotionSetting *mcstr);							//传感器限位反复测试
 extern void Axis_Pos_Reset (MotorMotionSetting *mcstr);								//开机滑轨复位到零点
-
-#endif
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon
