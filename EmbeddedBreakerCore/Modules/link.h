@@ -35,7 +35,7 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 	再后面5位表示速度，单位hz，再后一位表示模式
 	空2位
 */
-#define MDLS					0x1C
+#define MDLS					0x1A
 #define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, NB, NB, DT}
 #define SSD_MoNum_1st			2u							//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st			4u							//单步调试行距单位第一位，共1位

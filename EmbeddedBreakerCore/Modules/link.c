@@ -110,8 +110,7 @@ void Modules_ProtocolTask (void)
 	//急停
 	case Stew_All: 		
 		MotorBasicDriver(&st_motorAcfg, StopRun); 
-		EMERGENCYSTOP;									//协议通信急停
-		EMERGENCYSTOP_16;										
+		EMERGENCYSTOP;									//协议通信急停								
 		break;
 	//上下行基本算例
 	case UpMove: 		
@@ -130,7 +129,6 @@ void Modules_ProtocolTask (void)
 	{
 		__ShellHeadSymbol__; U1SD("Order Has Started to Execute\r\n");
 	}
-	order_bootflag = pcl_error;							//完成工作，协议关闭
 }
 
 //OLED常量显示屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数
