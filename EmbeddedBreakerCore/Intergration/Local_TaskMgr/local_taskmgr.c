@@ -16,6 +16,11 @@ void prio1TaskBus (void)
 void prio2TaskBus (void)
 {
 	LVD_EW_Handler();								//输入电压低压监测
+	
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
+	Modules_NonInterruptTask();
 #ifdef useRTOSinProject
 	Semaphore_Handler();							//信号量处理
 #endif
@@ -23,8 +28,17 @@ void prio2TaskBus (void)
 
 void prio3TaskBus (void)
 {
+#ifdef useRTOSinProject
+	CPU_SR_ALLOC();
+#endif
 	MCU_Temperature_Detector();						//温度监测
+#ifdef useRTOSinProject
+	OS_CRITICAL_ENTER();
+#endif
 	UIScreen_DisplayHandler();						//UI显示器
+#ifdef useRTOSinProject
+	OS_CRITICAL_EXIT();
+#endif
 }
 
 void prio4TaskBus (void)

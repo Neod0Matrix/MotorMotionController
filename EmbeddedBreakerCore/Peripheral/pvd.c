@@ -37,7 +37,7 @@ void PVD_Init_Config (void)
     NVIC_InitStructure.NVIC_IRQChannel = PVD_IRQn;
 	//优先级要高于除外部中断的其他中断
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
 	

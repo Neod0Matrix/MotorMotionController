@@ -40,59 +40,28 @@ void ucEXTI_ModeConfig (
 void EXTI_Config_Init (void)
 {
 	//STEW(正常状态低电平，触发拉高) PB8	
-	if (StewEXTI_Switch == StewEXTI_Enable)
-	{
-		//KEY0 PC5
-		ucGPIO_Config_Init (RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO,			
-							GPIO_Mode_IPU,					
-							GPIO_Input_Speed,									//无效参数						
-							GPIO_Remap_SWJ_JTAGDisable,							//关闭jtag，启用swd
-							GPIO_Pin_5,					
-							GPIOC,					
-							NI,				
-							EBO_Disable);
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);					//外部中断，需要使能AFIO时钟
-		ucEXTI_ModeConfig(	GPIO_PortSourceGPIOB, 
-							GPIO_PinSource8, 
-							Stew_EXTI_Line, 
-							EXTI_Mode_Interrupt, 
-							EXTI_Trigger_Rising, 
-							EXTI9_5_IRQn, 
-							0x01, 
-							0x03);
-	}
-						
+	ucGPIO_Config_Init (RCC_APB2Periph_GPIOB,			
+						GPIO_Mode_IPU,					
+						GPIO_Input_Speed,							//无效参数						
+						GPIO_Remap_SWJ_JTAGDisable,					//关闭jtag，启用swd
+						GPIO_Pin_8,					
+						GPIOB,					
+						NI,				
+						EBO_Disable);	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
+	ucEXTI_ModeConfig(
+						GPIO_PortSourceGPIOB, 
+						GPIO_PinSource8, 
+						Stew_EXTI_Line, 
+						EXTI_Mode_Interrupt, 
+						EXTI_Trigger_Rising, 
+						EXTI9_5_IRQn, 
+						0x01, 
+						0x03);
 	/*
 		@EmbeddedBreakerCore Extern API Insert
 	*/
-	if (ASES_Switch == ASES_Enable)
-	{
-		//先初始化IO口
-		Sensor_IO_Init();
-		//PB4 A2U
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
-		ucEXTI_ModeConfig(
-							GPIO_PortSourceGPIOB, 
-							GPIO_PinSource4, 
-							ARM2Up_EXTI_Line, 
-							EXTI_Mode_Interrupt, 
-							EXTI_Trigger_Falling, 
-							EXTI4_IRQn, 
-							0x02, 
-							0x03);
-							
-		//PB3 A2D
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
-		ucEXTI_ModeConfig(
-							GPIO_PortSourceGPIOB, 
-							GPIO_PinSource3, 
-							ARM2Dn_EXTI_Line, 
-							EXTI_Mode_Interrupt, 
-							EXTI_Trigger_Falling, 
-							EXTI3_IRQn, 
-							0x02, 
-							0x02);
-	}
+	Modules_ExternInterruptInit();
 }
 
 //STEW--PB8
@@ -102,61 +71,14 @@ void EXTI9_5_IRQHandler (void)
 	OSIntEnter();    
 #endif
 	
-	/*
-		@EmbeddedBreakerCore Extern API Insert
-	*/
-	if (StewEXTI_Switch == StewEXTI_Enable && EXTI_GetITStatus(EXTI_Line0) != RESET)//长按检测急停
+	if (EXTI_GetITStatus(Stew_EXTI_Line) != RESET)
 	{
-		/*
-			@EmbeddedBreakerCore Extern API Insert
-		*/
-		MotorBasicDriver(&st_motorAcfg, StopRun); 
-		
 		EMERGENCYSTOP;												
 		EMERGENCYSTOP_16;
 		while (STEW_LTrigger);										//等待急停释放，允许长期检测
 		ERROR_CLEAR;												//急停复位后自动清除警报	
-	}
+	}	
 	EXTI_ClearITPendingBit(Stew_EXTI_Line);  						//清除EXTI线路挂起位
-	
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntExit();  											 
-#endif
-}
-
-/*
-	@EmbeddedBreakerCore Extern API Insert
-*/
-//A2U--PB4
-void EXTI4_IRQHandler (void)										//机械臂传感器检测
-{
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntEnter();    
-#endif
-	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
-	{
-		MotorBasicDriver(&st_motorAcfg, StopRun);
-	}
-	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);						//清除EXTI线路挂起位
-	
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntExit();  											 
-#endif
-}
-
-//A2D--PB3
-void EXTI3_IRQHandler (void)										//机械臂传感器检测
-{
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntEnter();    
-#endif
-	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
-	{		
-		MotorBasicDriver(&st_motorAcfg, StopRun);
-	}
-	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);						//清除EXTI线路挂起位
 	
 #if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
 	OSIntExit();  											 

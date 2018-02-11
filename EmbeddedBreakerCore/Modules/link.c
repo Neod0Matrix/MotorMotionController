@@ -2,17 +2,19 @@
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
 //====================================================================================================
-//模块MotorMotionControl对框架EmbeddBreakerCore的链接
-//该文件写入对框架的函数调用支持
+/*
+	模块对框架EmbeddBreakerCore的链接
+	该文件写入对框架的函数调用支持
+*/
 
 Sigmod_Acce_Dval_Switch 	SAD_Switch;
 Init_ARM_Reset_Switch 		Init_Reset_Switch;
 ARM_Sensor_EXTI_Setting		ASES_Switch;
-Stew_EXTI_Setting			StewEXTI_Switch;
 
-//链接到Universal_Resource_Config函数的模块库
-void ModuleMMC_UniResConfig (void)
+//选项设置，链接到Universal_Resource_Config函数的模块库
+void Modules_UniResConfig (void)
 {
+	//该函数设置内容可以更新Universal_Resource_Config函数原设置
 	/*
 		电机柔性启停有多种积极意义
 		本工程主要是为了在步进电机相对高速运转时带动更重负载
@@ -32,16 +34,10 @@ void ModuleMMC_UniResConfig (void)
 		但如果普通检测可能响应不够快
 	*/
 	ASES_Switch			= ASES_Enable;					//ASES_Enable		ASES_Disable
-	
-	/*
-		急停状态判断复杂，不适合外部中断
-		但也有可能普通监测不够快
-	*/
-	StewEXTI_Switch 	= StewEXTI_Enable;				//StewEXTI_Enable	StewEXTI_Disable
 }
 
 //模块选项映射表，链接到urcMapTable_Print函数
-void ModuleMMC_URCMap (void)
+void Modules_URCMap (void)
 {
 	printf("\r\n%02d	S-Accel/Dvalue Speed", urc_sad);
 	usart1WaitForDataTransfer();
@@ -49,86 +45,22 @@ void ModuleMMC_URCMap (void)
 	usart1WaitForDataTransfer();
 	printf("\r\n%02d 	Arm Sensor EXTI Setting", urc_ases);
 	usart1WaitForDataTransfer();
-	printf("\r\n%02d 	Stew EXTI Setting", urc_stew);
-	usart1WaitForDataTransfer();
 }
 
 //选项处理，链接到pclURC_DebugHandler函数
-void ModuleMMC_urcDebugHandler (u8 ed_status, Module_SwitchNbr sw_type)
+void Modules_urcDebugHandler (u8 ed_status, Modules_SwitchNbr sw_type)
 {
+   //使用前请先更新Modules_SwitchNbr内容
 	switch (sw_type)
 	{
 	case urc_sad: 		SAD_Switch 		= (Sigmod_Acce_Dval_Switch)ed_status; 		break;
 	case urc_areset: 	ASES_Switch 	= (ARM_Sensor_EXTI_Setting)ed_status; 		break;
 	case urc_ases: 		ASES_Switch		= (ARM_Sensor_EXTI_Setting)ed_status;		break;	
-	case urc_stew: 		StewEXTI_Switch	= (Stew_EXTI_Setting)ed_status;				break;	
 	}
 }
 
-//OLED常量第四屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数
-void OLED_ScreenP4_Const (void)
-{	
-	OLED_ShowString(strPos(1u), ROW1, (const u8*)" MotorMotion  ", Font_Size);	
-	OLED_ShowString(strPos(1u), ROW2, (const u8*)"ControlModule ", Font_Size);	
-	OLED_Refresh_Gram();
-}
-
-//OLED MotorMotionControlModule数据显示
-void OLED_DisplayMMC (MotorMotionSetting *mcstr)
-{	
-	//显示电机运行状态
-	OLED_ShowString(strPos(0u), ROW1, (const u8*)"MS:", Font_Size);
-	if (mcstr -> MotorStatusFlag == Run)
-		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Work", Font_Size);
-	else
-		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Stew", Font_Size);
-
-	//显示电机转向
-	OLED_ShowString(strPos(8u), ROW1, (const u8*)"DN:", Font_Size);
-	if (mcstr -> RevDirectionFlag == Pos_Rev)
-		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Pos", Font_Size);
-	else
-		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Neg", Font_Size);
-	
-	//显示电机行距
-	if (mcstr -> DistanceUnitLS == LineUnit)
-		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RM:", Font_Size);
-	else
-		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RA:", Font_Size);
-	OLED_ShowNum(strPos(3u), ROW2, mcstr -> RotationDistance, 4u, Font_Size);	
-
-	//显示电机转速
-	OLED_ShowString(strPos(8u), ROW2, (const u8*)"SF:", Font_Size);
-	OLED_ShowNum(strPos(11u), ROW2, mcstr -> SpeedFrequency, 4u, Font_Size);	
-	
-	OLED_Refresh_Gram();
-}
-
-//串口接收数据示例，不调用
-void U1RSD_example (void)
-{
-    u8 t, len;
-	
-    if (PD_Switch == PD_Enable && Data_Receive_Over)	//接收数据标志
-    {
-        len = Data_All_Length;							//得到此次接收到的数据长度(字符串个数)
-        __ShellHeadSymbol__; U1SD("Controller Get The Data: \r\n");
-		if (No_Data_Receive)							//没有数据接收，可以发送
-		{
-			for (t = 0u; t < len; t++)
-			{
-				USART_SendData(USART1, USART1_RX_BUF[t]);//将所有数据依次发出	
-				usart1WaitForDataTransfer();			//等待发送结束
-			}
-		}
-        U1SD("\r\n");									//插入换行
-		
-        USART1_RX_STA = 0u;								//接收状态标记
-    }
-}
-
-//串口控制运动算例，对协议算例接口
-Motion_Select SingleStepDebug_linker (void)
+//协议调用指令响应，链接到OrderResponse_Handler函数
+void Modules_ProtocolTask (void)
 {
 	/*
 		16进制转10进制，线度单位毫米，角度单位度
@@ -199,8 +131,108 @@ Motion_Select SingleStepDebug_linker (void)
 		__ShellHeadSymbol__; U1SD("Order Has Started to Execute\r\n");
 	}
 	order_bootflag = pcl_error;							//完成工作，协议关闭
+}
+
+//OLED常量显示屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数
+void OLED_ScreenModules_Const (void)
+{
+	OLED_ShowString(strPos(1u), ROW1, (const u8*)" MotorMotion  ", Font_Size);	
+	OLED_ShowString(strPos(1u), ROW2, (const u8*)"ControlModule ", Font_Size);	
+	OLED_Refresh_Gram();
+}
+
+//OLED模块调用数据显示，链接到UIScreen_DisplayHandler函数
+void OLED_DisplayModules (void)
+{
+	OLED_DisplayMotorA(&st_motorAcfg);
+}
+
+//硬件底层初始化任务，链接到bspPeriSysCalls函数
+void Modules_HardwareInit (void)
+{
+	MotorDriverLib_Init();
+}
+
+//硬件底层外部中断初始化，链接到EXTI_Config_Init函数
+void Modules_ExternInterruptInit (void)
+{
+	if (ASES_Switch == ASES_Enable)
+	{
+		//先初始化IO口
+		Sensor_IO_Init();
+		//PB4 A2U
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
+		ucEXTI_ModeConfig(
+							GPIO_PortSourceGPIOB, 
+							GPIO_PinSource4, 
+							ARM2Up_EXTI_Line, 
+							EXTI_Mode_Interrupt, 
+							EXTI_Trigger_Falling, 
+							EXTI4_IRQn, 
+							0x02, 
+							0x03);
+							
+		//PB3 A2D
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);			//外部中断，需要使能AFIO时钟
+		ucEXTI_ModeConfig(
+							GPIO_PortSourceGPIOB, 
+							GPIO_PinSource3, 
+							ARM2Dn_EXTI_Line, 
+							EXTI_Mode_Interrupt, 
+							EXTI_Trigger_Falling, 
+							EXTI3_IRQn, 
+							0x02, 
+							0x02);
+	}
+}
+
+//外部中断任务，无需声明，使用时修改函数名
+//A2U--PB4
+void EXTI4_IRQHandler (void)										//机械臂传感器检测
+{
+#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntEnter();    
+#endif
 	
-	return SSD_MotionNumber;							//返回算例号用于其它功能
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
+	{
+		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
+	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);						//清除EXTI线路挂起位
+	
+#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntExit();  											 
+#endif
+}
+
+//A2D--PB3
+void EXTI3_IRQHandler (void)										//机械臂传感器检测
+{
+#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntEnter();    
+#endif
+	
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
+	{		
+		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
+	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);						//清除EXTI线路挂起位
+	
+#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntExit();  											 
+#endif
+}
+
+//模块非中断任务，链接到local_taskmgr.c，默认添加到第二任务
+void Modules_NonInterruptTask (void)
+{
+	
+}
+
+//模块中断任务，链接到time_base.c TIM2_IRQHandler函数中
+void Modules_InterruptTask (void)
+{
+	
 }
 
 //====================================================================================================

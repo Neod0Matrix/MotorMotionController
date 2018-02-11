@@ -1,4 +1,4 @@
-#pragma once
+#pragma once   
 #include "stdafx.h"
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon

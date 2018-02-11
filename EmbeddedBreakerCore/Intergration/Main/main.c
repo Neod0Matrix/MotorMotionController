@@ -31,24 +31,11 @@ void bspPeriSysCalls (void)
 	//--------------------------定时器及外部中断设置初始化-------------------------------//
 	
 	TIM2_usTimeBase_Init(ENABLE);						//us级公交车定时器2初始化(就是谁都可以蹭个时基的意思)
-	
-	/*
-		@EmbeddedBreakerCore Extern API Insert
-	*/
-	MotorDriverLib_Init();								//电机驱动模块初始化
-	
 	EXTI_Config_Init();									//外部中断初始化
 	
 	//----------------------------------IO口初始化----------------------------------------//
 	
 	KEY_Init();         								//初始化与按键连接的硬件接口
-
-	/*
-		@EmbeddedBreakerCore Extern API Insert
-	*/
-	if (ASES_Switch == ASES_Disable)
-		Sensor_IO_Init();
-	
 	Beep_IO_Init();										//初始化报警用蜂鸣器
 	LVD_IO_Init();										//欠压检测IO
 	
@@ -59,6 +46,11 @@ void bspPeriSysCalls (void)
 	//--------------------------------界面功能初始化--------------------------------------//
 	
     OLED_Init();										//初始化OLED
+	
+	/*
+		@EmbeddedBreakerCore Extern API Insert
+	*/
+	Modules_HardwareInit();								//模块硬件初始化
 }
 
 /*$PAGE*/
@@ -73,7 +65,6 @@ static void preSetUpHardware (void)
     bspPeriSysCalls();									//初始化底层函数封装
 	
 	OLED_DisplayInitConst();							//UI初始化
-	Axis_Pos_Reset(&st_motorAcfg);						//滑轨复位
 	Response_Strings();									//与上位机通信的起始标志，表示控制器已初始化完成
 }
 

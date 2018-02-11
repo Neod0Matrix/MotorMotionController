@@ -378,5 +378,36 @@ void Axis_Pos_Reset (MotorMotionSetting *mcstr)
 	}		
 }
 
+//OLED显示motorA状态值
+void OLED_DisplayMotorA (MotorMotionSetting *mcstr)
+{
+	//显示电机运行状态
+	OLED_ShowString(strPos(0u), ROW1, (const u8*)"MS:", Font_Size);
+	if (mcstr -> MotorStatusFlag == Run)
+		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Work", Font_Size);
+	else
+		OLED_ShowString(strPos(3u), ROW1, (const u8*)"Stew", Font_Size);
+
+	//显示电机转向
+	OLED_ShowString(strPos(8u), ROW1, (const u8*)"DN:", Font_Size);
+	if (mcstr -> RevDirectionFlag == Pos_Rev)
+		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Pos", Font_Size);
+	else
+		OLED_ShowString(strPos(11u), ROW1, (const u8*)"Neg", Font_Size);
+	
+	//显示电机行距
+	if (mcstr -> DistanceUnitLS == LineUnit)
+		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RM:", Font_Size);
+	else
+		OLED_ShowString(strPos(0u), ROW2, (const u8*)"RA:", Font_Size);
+	OLED_ShowNum(strPos(3u), ROW2, mcstr -> RotationDistance, 4u, Font_Size);	
+
+	//显示电机转速
+	OLED_ShowString(strPos(8u), ROW2, (const u8*)"SF:", Font_Size);
+	OLED_ShowNum(strPos(11u), ROW2, mcstr -> SpeedFrequency, 4u, Font_Size);	
+	
+	OLED_Refresh_Gram();
+}
+
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon
