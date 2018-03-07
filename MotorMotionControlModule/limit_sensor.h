@@ -18,6 +18,10 @@
 #define ULSR_IO  				GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4)	//读取顶部传感器
 #define DLSR_IO  				GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_3)	//读取底部传感器
 
+//限位传感器外部中断总线
+#define ARM2Dn_EXTI_Line  		EXTI_Line3									//下方传感器					
+#define ARM2Up_EXTI_Line		EXTI_Line4									//上方传感器						
+
 //定义传感器映射键值，必须大于未响应的0值
 typedef enum 
 {
