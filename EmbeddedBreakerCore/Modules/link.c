@@ -142,9 +142,14 @@ void OLED_ScreenModules_Const (void)
 }
 
 //OLED模块调用数据显示，链接到UIScreen_DisplayHandler函数
-void OLED_DisplayModules (void)
+void OLED_DisplayModules (u8 page)
 {
-	OLED_DisplayMotorA(&st_motorAcfg);
+	switch (page)
+	{
+	case 4:
+		OLED_DisplayMotorA(&st_motorAcfg);
+		break;
+	}
 }
 
 //硬件底层初始化任务，链接到bspPeriSysCalls函数
