@@ -63,9 +63,6 @@ void FreqDisperseTable_Create (MotorMotionSetting mc)
 											dsp.para_b, 
 											step_x);	
 	}
-	//动态内存调用
-	stackOverFlow(asp.disp_table);
-	stackOverFlow(dsp.disp_table);
 }
 
 //S形加减速

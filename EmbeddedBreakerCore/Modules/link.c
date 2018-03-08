@@ -67,26 +67,26 @@ void Modules_ProtocolTask (void)
 		由于是16进制坐标所以不需要添加0x30转换值
 	*/
 	
-	//两字节算列类型
+	//两字算列类型
 	Motion_Select SSD_MotionNumber	= (Motion_Select)(
-											USART1_RX_BUF[SSD_MoNum_1st] 		* 10u 
-										+ 	USART1_RX_BUF[SSD_MoNum_1st + 1]);
-	//一字节行距单位
+											*(USART1_RX_BUF + SSD_MoNum_1st) 		* 10u 
+										+ 	*(USART1_RX_BUF + (SSD_MoNum_1st + 1)));
+	//一字行距单位
 	LineRadSelect SSD_Lrsflag		= (LineRadSelect)(
-											USART1_RX_BUF[SSD_DisUnit_1st]);
-	//四字节行距长度
+											*(USART1_RX_BUF + SSD_DisUnit_1st));
+	//四字行距长度
 	u16 SSD_GetDistance 			= (u16)(
-											USART1_RX_BUF[SSD_GetDis_1st] 		* 1000u 
-										+ 	USART1_RX_BUF[SSD_GetDis_1st + 1] 	* 100u 
-										+ 	USART1_RX_BUF[SSD_GetDis_1st + 2] 	* 10u
-										+ 	USART1_RX_BUF[SSD_GetDis_1st + 3]);
-	//四字节速度
-	u16 SSD_Speed					= (u16)(USART1_RX_BUF[SSD_SpFq_1st]			* 1000u
-										+	USART1_RX_BUF[SSD_SpFq_1st + 1] 	* 100u 
-										+ 	USART1_RX_BUF[SSD_SpFq_1st + 2] 	* 10u 
-										+ 	USART1_RX_BUF[SSD_SpFq_1st + 3]);
-	//一字节模式位
-	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(USART1_RX_BUF[SSD_Mode_1st]);
+											*(USART1_RX_BUF + SSD_GetDis_1st) 		* 1000u 
+										+ 	*(USART1_RX_BUF + (SSD_GetDis_1st + 1)) * 100u 
+										+ 	*(USART1_RX_BUF + (SSD_GetDis_1st + 2)) * 10u
+										+ 	*(USART1_RX_BUF + (SSD_GetDis_1st + 3)));
+	//四字速度
+	u16 SSD_Speed					= (u16)(*(USART1_RX_BUF + SSD_SpFq_1st)			* 1000u
+										+	*(USART1_RX_BUF + (SSD_SpFq_1st + 1)) 	* 100u 
+										+ 	*(USART1_RX_BUF + (SSD_SpFq_1st + 2)) 	* 10u 
+										+ 	*(USART1_RX_BUF + (SSD_SpFq_1st + 3)));
+	//一字模式位
+	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(*(USART1_RX_BUF + SSD_Mode_1st));
 	
 	//打印标志，算例编号，圈数，急停不显示
 	if (SendDataCondition && SSD_MotionNumber != Stew_All)
