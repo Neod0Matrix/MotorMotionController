@@ -8,7 +8,7 @@ Copyright
 Update
 ===============
 
-	最后更新时间: 2018/03/08pm1501
+	最后更新时间: 2018/03/16pm2117
 
 Project Manual
 ==============
@@ -38,6 +38,7 @@ Use Manual
 	同一头文件包含头文件：stdafx.h Windows编程标准包含
 	使用前请先打开config.c config.h文件按照注释提示修改系统资源配置
 	之后详细阅读README.md，并且保证自己很清醒
+	更新框架覆盖时不覆盖EmbeddedBreakerCore\Modules目录和外部应用目录
 	
 Inner IO Map
 ===============
