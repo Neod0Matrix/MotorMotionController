@@ -385,13 +385,13 @@ void OLED_DisplayMotorA (MotorMotionSetting *mcstr)
 	snprintf((char*)oled_dtbuf, OneRowMaxWord, ("MS:%s DN:%s"), 
 		((mcstr -> MotorStatusFlag == Run)? "Work":"Stew"), 
 		((mcstr -> RevDirectionFlag == Pos_Rev)? "Pos":"Neg"));
-	OLED_ShowString(strPos(0u), ROW1, (const u8*)oled_dtbuf, Font_Size);
+	OLED_ShowString(strPos(0u), ROW1, (StringCache*)oled_dtbuf, Font_Size);
 	
 	//显示电机行距、显示电机转速
 	snprintf((char*)oled_dtbuf, OneRowMaxWord, 
 		((mcstr -> DistanceUnitLS == LineUnit)? "RM:%04d SF:%04d":"RA:%04d SF:%04d"), 
 		mcstr -> RotationDistance, mcstr -> SpeedFrequency);
-	OLED_ShowString(strPos(0u), ROW2, (const u8*)oled_dtbuf, Font_Size);
+	OLED_ShowString(strPos(0u), ROW2, (StringCache*)oled_dtbuf, Font_Size);
 	OLED_Refresh_Gram();
 }
 
