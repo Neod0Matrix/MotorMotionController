@@ -59,9 +59,9 @@ typedef enum
 //urc开源链接编号
 typedef enum
 {
-	urc_sad 	= 15,
-	urc_areset 	= 16,
-	urc_ases 	= 17,
+	urc_sad 	= 17,
+	urc_areset 	= 18,
+	urc_ases 	= 19,
 } Modules_SwitchNbr;
 
 //裁去config.h中的定义放到这里来重新定义urc协议长度
