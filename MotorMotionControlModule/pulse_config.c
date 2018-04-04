@@ -339,19 +339,14 @@ void RepeatTestMotion (MotorMotionSetting *mcstr)
 		PeriodUpDnMotion(repeatCnt, mcstr);
 		
 		//打印循环次数
-		__ShellHeadSymbol__; 
-		if (SendDataCondition)
-		{
-			printf("No.%04d Times Repeat Test\r\n", repeatCnt);
-			usart1WaitForDataTransfer();		
-		}
-		
+		__ShellHeadSymbol__; U1SD("No.%04d Times Repeat Test\r\n", repeatCnt);
 		displaySystemInfo();							//打印系统状态信息
 		
 		if (++repeatCnt >= 1000) 
 			repeatCnt = 0;			
 		
-		if (STEW_LTrigger) break;						//长按检测急停
+		if (STEW_LTrigger) 
+			break;										//长按检测急停
 			
 	}
     //总动作完成
