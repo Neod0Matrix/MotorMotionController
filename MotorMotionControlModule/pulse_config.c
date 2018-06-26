@@ -114,7 +114,9 @@ void MotorDriverLib_Init (void)
 {
 	PulseDriver_IO_Init();								//脉冲IO口
 	Direction_IO_Init();								//方向IO口
+	EncoderPhase_IO_Init();								//编码器IO口
 	TIM1_MecMotorDriver_Init();							//脉冲发生定时器
+	TIM4_EncoderCounter_Config();						//编码器计数器
 	FreqDisperseTable_Create(st_motorAcfg);				//加减速表生成
 }
 

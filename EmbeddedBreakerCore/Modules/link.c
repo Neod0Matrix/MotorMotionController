@@ -197,6 +197,26 @@ void Modules_ExternInterruptInit (void)
 							0x02, 
 							0x02);
 	}
+
+	//编码器Z相外部中断PC2
+	ucGPIO_Config_Init (RCC_APB2Periph_GPIOC,										
+						GPIO_Mode_IPU,					
+						GPIO_Speed_50MHz,						
+						GPIORemapSettingNULL,			
+						GPIO_Pin_2,							
+						GPIOC,					
+						NI,				
+						EBO_Disable);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE);
+	ucEXTI_ModeConfig(
+							GPIO_PortSourceGPIOC, 
+							GPIO_PinSource2, 
+							Encoder_Zphase_EXTI_Line, 
+							EXTI_Mode_Interrupt, 
+							EXTI_Trigger_Falling, 
+							EXTI3_IRQn, 
+							0x03, 
+							0x02);
 }
 
 //外部中断任务，无需声明，使用时修改函数名
@@ -280,6 +300,7 @@ void Modules_RTC_TaskScheduler (void)
 void Modules_StatusReqHandler (void)
 {
 	//此项设计可以减少模块指令的多余添加
+	EncoderCount_ReadValue();
 }
 
 //====================================================================================================

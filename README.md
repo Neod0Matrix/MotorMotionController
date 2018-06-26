@@ -8,7 +8,7 @@ Copyright
 Update
 ===============
 
-	最后更新时间: 2018/04/17pm2123
+	最后更新时间: 2018/06/26pm2121
 
 Project Manual
 ==============
@@ -51,7 +51,7 @@ Inner IO Map
 	PA1 ---- RAILGUN			*
 	PA2/PB0  Pulse_IO			*
 	PA3/PB1  					*
-	PA4 ----					*
+	PA4 ---- 					*
 	PA5 ---- 					*
 	PA6 ---- Dir_IO				*
 	PA7 ---- 					*
@@ -81,9 +81,9 @@ Inner IO Map
 	PB14 --- A1DSR		I
 	PB15 --- OLED_SDA	I
 	
-	PC0 ---- 			I
-	PC1 ---- 			I
-	PC2 ---- 			I
+	PC0 ---- ENCODE_A	I
+	PC1 ---- ENCODE_B	I
+	PC2 ---- ENCODE_Z 	I
 	PC3 ---- 			I
 	PC4 ---- BEEP
 	PC5 ---- KEY0		I

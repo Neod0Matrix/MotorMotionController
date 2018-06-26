@@ -50,7 +50,7 @@ typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;
 //电机运行状态
 typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
 
-//电机运行模式，有限运行(正常)，无限运行(测试脉冲频率使用)
+//电机运行模式，有限运行(位置控制模式)，无限运行(速度控制模式)
 typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
 //线度角度切换(RA<->RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;

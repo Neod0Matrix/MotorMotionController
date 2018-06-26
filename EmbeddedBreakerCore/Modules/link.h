@@ -11,6 +11,7 @@
 #include "limit_sensor.h"									//限位传感器
 #include "pulse_config.h"									//电机脉冲配置
 #include "sigmod.h"											//S形加减速
+#include "encoder.h"										//光电编码器
 
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
@@ -46,8 +47,19 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 #define SSD_GetDis_1st			5u							//单步调试行距第一位，共4位
 #define SSD_SpFq_1st			9u							//单步调试速度第一位，共4位
 #define SSD_Mode_1st			13u							//单步调试运行模式第一位，共1位
+/*
+	example:
 
-//对13个运动算例进行串口查询编号
+	第2、3位00 01: 					算例#1，up_move，具体见算例定义Motion_Select
+	第4位00:						行距单位，00 rad 01 line，具体见行距单位定义LineRadSelect
+	第5、6、7、8位00 03 06 00: 		行距360，单位由第4位决定
+	第9、10、11、12位01 00 00 00:	速度1000，单位为Hz，直接指向发送的脉冲频率
+	第13位00:						模式0，有限运行(位置模式)，具体见模式定义MotorRunMode
+	
+	AA 1A 00 01 00 00 03 06 00 01 00 00 00 00 00 00 00 FF
+*/
+
+//对运动算例进行串口查询编号
 typedef enum
 {
     Stew_All 	= 0,									//急停
