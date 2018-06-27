@@ -47,12 +47,9 @@ void Modules_UniResConfig (void)
 //模块选项映射表，链接到urcMapTable_Print函数
 void Modules_URCMap (void)
 {
-	printf("\r\n%02d	S-Accel/Dvalue Speed", urc_sad);
-	usart1WaitForDataTransfer();
-	printf("\r\n%02d	Arm Position Reset", urc_areset);
-	usart1WaitForDataTransfer();
-	printf("\r\n%02d 	Arm Sensor EXTI Setting", urc_ases);
-	usart1WaitForDataTransfer();
+	U1SD("\r\n%02d	S-Accel/Dvalue Speed", urc_sad);
+	U1SD("\r\n%02d	Arm Position Reset", urc_areset);
+	U1SD("\r\n%02d 	Arm Sensor EXTI Setting", urc_ases);
 }
 
 //选项处理，链接到pclURC_DebugHandler函数
@@ -96,21 +93,30 @@ void Modules_ProtocolTask (void)
 	//一字模式位
 	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(*(USART1_RX_BUF + SSD_Mode_1st));
 	
+	char* output_cache;
+#define OUTPUT_CACHE_SIZE	100
+	
 	//打印标志，算例编号，圈数，急停不显示
-	if (SendDataCondition && SSD_MotionNumber != Stew_All)
+	if (SSD_MotionNumber != Stew_All)
 	{
-		__ShellHeadSymbol__; 
-		printf("Please Confirm Motion Parameter: ");
+		__ShellHeadSymbol__; U1SD("Please Confirm Motion Parameter: ");
+		
+		output_cache = (char*)malloc(sizeof(char) * OUTPUT_CACHE_SIZE);
 		//两个flag四种情况
 		if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == LimitRun)
-			printf("Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: LimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: LimitRun\r\n", 
+				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
 		else if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == UnlimitRun)
-			printf("Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: UnlimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: UnlimitRun\r\n", 
+				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
 		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == LimitRun)
-			printf("Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: LimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: LimitRun\r\n", 
+				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
 		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == UnlimitRun)
-			printf("Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: UnlimitRun\r\n", SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
-		usart1WaitForDataTransfer();		
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: UnlimitRun\r\n", 
+				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);	
+		U1SD("%s", output_cache);
+		free((void*)output_cache);
 	}
 
 	switch (SSD_MotionNumber)				
@@ -118,7 +124,7 @@ void Modules_ProtocolTask (void)
 	//急停
 	case Stew_All: 		
 		MotorBasicDriver(&st_motorAcfg, StopRun); 
-		EMERGENCYSTOP;									//协议通信急停								
+		//EMERGENCYSTOP;									//协议通信急停								
 		break;
 	//上下行基本算例
 	case UpMove: 		

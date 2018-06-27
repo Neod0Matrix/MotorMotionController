@@ -16,14 +16,14 @@
 #define IO_Direction 					PAout(6)		//方向线输出
 //测试用宏定义
 #define StepAngle						1.8f			//步距角
-#define OneLoopPerPulse 				((360.f / StepAngle) * DriverDivision)//实际脉冲个数/圈	
+#define OneLoopPerPulse 				1600.f			//实际脉冲个数/圈	
 
 //角度线度转换
 //角度单位：一圈即360度；线度单位：一圈即5mm
-#define MaxLimit_Dis					315				//滑轨限位
-#define OneLoopHeight					5				//步进电机转一圈上升高度
-#define RadUnitConst					(OneLoopPerPulse / 360)
-#define LineUnitConst					(OneLoopPerPulse / OneLoopHeight)
+#define MaxLimit_Dis					315.f			//滑轨限位
+#define OneLoopHeight					5.f				//步进电机转一圈上升高度
+#define RadUnitConst					(float)(OneLoopPerPulse / 360.f)
+#define LineUnitConst					(float)(OneLoopPerPulse / OneLoopHeight)
 
 //复位起始频率
 #define ResetStartFrequency				3000		

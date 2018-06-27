@@ -30,8 +30,9 @@
 #define TargetTimeBase				TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
 #define FreqMaxThreshold			500000L				//频率计数器上限阈值
 //分频数计算
+#define DivCorrectConst				0.64f				//分频数矫正系数
 #ifndef DivFreqConst					
-#define DivFreqConst(targetFreq) 	(uint16_t)(((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1)
+#define DivFreqConst(targetFreq) 	(float)((((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1) * DivCorrectConst)
 #endif
 
 //声明电机参数结构体
@@ -173,11 +174,9 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 {
 	if (mcstr -> RotationDistance != 0)
 	{
-		switch (mcstr -> DistanceUnitLS)
-		{
-		case RadUnit: 	mcstr -> ReversalRange = 2 * RadUnitConst * mcstr -> RotationDistance - 1u; 	break;
-		case LineUnit: 	mcstr -> ReversalRange = 2 * LineUnitConst * mcstr -> RotationDistance - 1u; 	break;
-		}
+		mcstr -> ReversalRange = 2 
+			* ((mcstr -> DistanceUnitLS == RadUnit)? RadUnitConst:LineUnitConst) 
+			* mcstr -> RotationDistance - 1;
 	}
 }
 
@@ -192,19 +191,22 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		//脉冲自动完成
 		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
 		{
+			mcstr -> ReversalCnt = 0;
 			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);	//通道输出关闭
 			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM1关闭
 			IO_MainPulse = MD_IO_Reset;
 			mcstr -> MotorStatusFlag = Stew;			//标志复位
+			
 			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
-			return;										//函数遇到return将结束
+			
+			return;
 		}
 		//分频产生对应的脉冲频率
-		if (++mcstr -> divFreqCnt == mcstr -> CalDivFreqConst)
+		if (mcstr -> divFreqCnt++ == mcstr -> CalDivFreqConst)
 		{
 			mcstr -> divFreqCnt = 0;
-			IO_MainPulse = !IO_MainPulse;			
-			mcstr -> ReversalCnt++;						//对脉冲计数
+			IO_MainPulse = !IO_MainPulse;	
+			mcstr -> ReversalCnt++;
 		}
     }
 }
