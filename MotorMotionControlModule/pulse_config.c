@@ -117,7 +117,7 @@ void MotorDriverLib_Init (void)
 	Direction_IO_Init();								//方向IO口
 	EncoderPhase_IO_Init();								//编码器IO口
 	TIM1_MecMotorDriver_Init();							//脉冲发生定时器
-	TIM4_EncoderCounter_Config();						//编码器计数器
+	TIM8_EncoderCounter_Config();						//编码器计数器
 	FreqDisperseTable_Create(st_motorAcfg);				//加减速表生成
 }
 
@@ -193,11 +193,12 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		{
 			mcstr -> ReversalCnt = 0;
 			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);	//通道输出关闭
-			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM1关闭
+			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM关闭
 			IO_MainPulse = MD_IO_Reset;
 			mcstr -> MotorStatusFlag = Stew;			//标志复位
 			
 			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
+			EncoderCount_ReadValue();					//显示当前编码器读数
 			
 			return;
 		}

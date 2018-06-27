@@ -306,7 +306,6 @@ void Modules_RTC_TaskScheduler (void)
 void Modules_StatusReqHandler (void)
 {
 	//此项设计可以减少模块指令的多余添加
-	EncoderCount_ReadValue();
 }
 
 //====================================================================================================

@@ -9,7 +9,7 @@
 #define Encoder_Zphase_EXTI_Line	EXTI_Line2	//编码器Z相外部中断总线		
 
 void EncoderPhase_IO_Init (void);
-void TIM4_EncoderCounter_Config (void);
+void TIM8_EncoderCounter_Config (void);
 u16 EncoderCount_ReadValue (void);
 
 //====================================================================================================
