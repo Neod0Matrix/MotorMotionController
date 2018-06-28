@@ -59,6 +59,43 @@ Sensor_MapTable Sensor_Scan (Input_LoogTrigger mode)
 	return Null_TR;											//未响应
 }
 
+//外部中断任务，无需声明，使用时修改函数名
+//A2U--PB4
+void EXTI4_IRQHandler (void)								//机械臂传感器检测
+{
+#if SYSTEM_SUPPORT_OS 										//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntEnter();    
+#endif
+	
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
+	{
+		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
+	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);				//清除EXTI线路挂起位
+	
+#if SYSTEM_SUPPORT_OS 										//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntExit();  											 
+#endif
+}
+
+//A2D--PB3
+void EXTI3_IRQHandler (void)								//机械臂传感器检测
+{
+#if SYSTEM_SUPPORT_OS 										//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntEnter();    
+#endif
+	
+	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
+	{		
+		MotorBasicDriver(&st_motorAcfg, StopRun);
+	}
+	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);				//清除EXTI线路挂起位
+	
+#if SYSTEM_SUPPORT_OS 										//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
+	OSIntExit();  											 
+#endif
+}
+
 //等待传感器检测到遮挡，封装判断是否触发
 void WaitForSR_Trigger (Sensor_Number sr_nbr)
 {

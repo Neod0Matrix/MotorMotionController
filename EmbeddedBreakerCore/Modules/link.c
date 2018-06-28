@@ -225,53 +225,20 @@ void Modules_ExternInterruptInit (void)
 							0x02);
 }
 
-//外部中断任务，无需声明，使用时修改函数名
-//A2U--PB4
-void EXTI4_IRQHandler (void)										//机械臂传感器检测
-{
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntEnter();    
-#endif
-	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
-	{
-		MotorBasicDriver(&st_motorAcfg, StopRun);
-	}
-	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);						//清除EXTI线路挂起位
-	
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntExit();  											 
-#endif
-}
-
-//A2D--PB3
-void EXTI3_IRQHandler (void)										//机械臂传感器检测
-{
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntEnter();    
-#endif
-	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
-	{		
-		MotorBasicDriver(&st_motorAcfg, StopRun);
-	}
-	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);						//清除EXTI线路挂起位
-	
-#if SYSTEM_SUPPORT_OS 												//如果SYSTEM_SUPPORT_OS为真，则需要支持OS
-	OSIntExit();  											 
-#endif
-}
-
 //模块非中断任务，链接到local_taskmgr.c，默认添加到第二任务
 void Modules_NonInterruptTask (void)
 {
-	
+	if (encodeMesSpeed > 0.f)
+	{
+		__ShellHeadSymbol__; U1SD("Encoder Measure Axis Rev: %.4fdegree/s\r\n", encodeMesSpeed);
+	}
 }
 
 //模块中断任务，链接到time_base.c TIM2_IRQHandler函数中
 void Modules_InterruptTask (void)
 {
-	
+	//由于中断打印会导致电机卡顿，使用全局变量转移打印任务
+	encodeMesSpeed = Encoder_MeasureAxisSpeed(&st_motorAcfg);
 }
 
 //基于RTC时间的任务计划，链接到local_taskmgr.c，默认添加到第四任务

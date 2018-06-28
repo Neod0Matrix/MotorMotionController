@@ -63,8 +63,8 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 typedef enum
 {
     Stew_All 	= 0,									//急停
-    UpMove		= 1,									//机械臂上行
-    DownMove	= 2,									//机械臂下行
+    UpMove		= 1,									//机械臂上行(正转)
+    DownMove	= 2,									//机械臂下行(反转)
 	Repeat		= 3,									//反复测试
 } Motion_Select;										//算例选择	
 

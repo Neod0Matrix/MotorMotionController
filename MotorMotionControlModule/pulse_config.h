@@ -12,7 +12,7 @@
 */
 
 //脉冲IO口
-#define IO_MainPulse 					PBout(0)		//主脉冲输出
+#define IO_MainPulse 					PAout(7)		//主脉冲输出
 #define IO_Direction 					PAout(6)		//方向线输出
 //测试用宏定义
 #define StepAngle						1.8f			//步距角

@@ -30,7 +30,7 @@
 #define TargetTimeBase				TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
 #define FreqMaxThreshold			500000L				//频率计数器上限阈值
 //分频数计算
-#define DivCorrectConst				0.64f				//分频数矫正系数
+#define DivCorrectConst				0.64f				//分频数矫正系数(128MHz主频使用)
 #ifndef DivFreqConst					
 #define DivFreqConst(targetFreq) 	(float)((((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1) * DivCorrectConst)
 #endif
@@ -41,8 +41,8 @@ MotorMotionSetting st_motorAcfg;
 //主脉冲IO口初始化
 void PulseDriver_IO_Init (void)
 {
-	//PB0
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOB,
+	//PA7
+	ucGPIO_Config_Init (RCC_APB2Periph_GPIOA,
 	//如果IO口对应定时器通道，则配置成复用推挽输出，如果是任意IO口则配置成推挽输出
 #ifdef UseTimerPWMorOCChannel	
 						GPIO_Mode_AF_PP,
@@ -51,8 +51,8 @@ void PulseDriver_IO_Init (void)
 #endif	
 						GPIO_Speed_50MHz,						
 						GPIORemapSettingNULL,			
-						GPIO_Pin_0,					
-						GPIOB,					
+						GPIO_Pin_7,					
+						GPIOA,					
 						IHL,				
 						EBO_Enable);		
 }
