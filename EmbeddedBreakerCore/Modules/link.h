@@ -16,7 +16,7 @@
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
 #define _Modules_Name_			"MotorMotionController"		//模块名称
-#define _Modules_Version_ 		"v0p3_LTE"					//长期演进版
+#define _Modules_Version_ 		"v0p4_LTE"					//长期演进版
 
 //以下仿照config.h写法配置该模块的本地URC接口
 #define PosLogicOperation									//脉冲信号配置为正逻辑式，如果采用负逻辑则注释

@@ -17,8 +17,8 @@
 //输入滤波器
 #define TIM_ICFilter_Number			6
 //编码器测速，采样率分频设置，单位us
-#define Encoder_SampleTime			25000							//25ms
-#define EncoderSpeedPrintTime		1000000							//1000ms
+#define Encoder_SampleTime			20000							
+#define EncoderSpeedPrintTime		1000000							
 
 float encodeMesSpeed;
 kf_1deriv_factor ecstr;
@@ -144,20 +144,33 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 				encoder_cnt_x2 = TIM_GetCounter(Encoder_Timerx) / 4;							
 			else
 				encoder_cnt_x1 = TIM_GetCounter(Encoder_Timerx) / 4;
-			
-			//奇偶数获取
-			if (odd_even_flag >= 1000u)
+			if (odd_even_flag > 1000u)
 				odd_even_flag = 0u;
 			odd_even_flag++;
 			
-			//计算实际速度
+			//计算编码器线数差值并取绝对值，与最大线数比较，取最小(以此来排除零位置逆差)
 			encoder_cnt_dx = abs(encoder_cnt_x1 - encoder_cnt_x2);
-			if (encoder_cnt_dx > 0)
+			encoder_cnt_dx = ((u16)EncoderLineValue - encoder_cnt_dx > 
+				encoder_cnt_dx)? encoder_cnt_dx:(u16)EncoderLineValue - encoder_cnt_dx;
+			
+			//抛弃零值缺失
+			if (encoder_cnt_dx != 0)
 			{
-				mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) / 0.025f;		
-				mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	//一阶卡尔曼滤波处理速度
+				/*
+					计算速度(理想时间假设)，并配置一阶卡尔曼滤波对输出进行数字滤波
+					速度的串口输出调试切换到中断服务函数外部进行，避免电机卡顿
+				*/
+				mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) 
+					/ (float)(Encoder_SampleTime / 1000000.f);		
+				mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
 			}
 		}
+	}
+	//错误状态和电机静置状态速度清零
+	else if (Return_Error_Type != Error_Clear || mcstr -> MotorStatusFlag != Run)
+	{
+		encoder_cnt_dx = 0;
+		mes_speed = 0.f;
 	}
 	
 	return mes_speed;

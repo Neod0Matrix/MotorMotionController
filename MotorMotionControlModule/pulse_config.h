@@ -42,9 +42,9 @@
 
 //方向选择
 #ifdef use_ULN2003A										//ULN2003A反相设置
-typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;		
+typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;		
 #else
-typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;	
+typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;	
 #endif
 
 //电机运行状态

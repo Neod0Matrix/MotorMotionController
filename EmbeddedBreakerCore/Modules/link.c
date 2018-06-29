@@ -138,6 +138,7 @@ void Modules_ProtocolTask (void)
 		RepeatTestMotion(&st_motorAcfg); 						
 		break;
 	}
+	EncoderCount_ReadValue();								//显示当前编码器读数
 	
 	if (SSD_MotionNumber != Stew_All)
 	{
@@ -228,9 +229,26 @@ void Modules_ExternInterruptInit (void)
 //模块非中断任务，链接到local_taskmgr.c，默认添加到第二任务
 void Modules_NonInterruptTask (void)
 {
-	if (encodeMesSpeed > 0.f)
+	static u16 index = 1u;
+	
+	if (Return_Error_Type == Error_Clear 							//无错误状态
+		&& pwsf != JBoot 											//初始化完成状态
+		&& globalSleepflag == SysOrdWork 							//非睡眠状态
+		&& st_motorAcfg.MotorStatusFlag == Run) 					//电机处于运动状态
 	{
-		__ShellHeadSymbol__; U1SD("Encoder Measure Axis Rev: %.4fdegree/s\r\n", encodeMesSpeed);
+		if (encodeMesSpeed != 0.f)
+		{
+			//输出计数
+			if (index > 1000u)
+				index = 1u;
+			__ShellHeadSymbol__; U1SD("Encoder Measure Axis Rev: [%4d] %.4fdegree/s\r\n", index, encodeMesSpeed);
+			index++;
+		}
+	}
+	else if (Return_Error_Type != Error_Clear || st_motorAcfg.MotorStatusFlag != Run)
+	{
+		index = 1u;
+		encodeMesSpeed = 0.f;
 	}
 }
 
