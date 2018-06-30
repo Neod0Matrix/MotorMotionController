@@ -12,6 +12,7 @@
 #include "pulse_config.h"									//电机脉冲配置
 #include "sigmod.h"											//S形加减速
 #include "encoder.h"										//光电编码器
+#include "music.h"											//音乐播放器
 
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
@@ -41,12 +42,15 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 	空2位
 */
 #define MDLS					0x1A
-#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, NB, NB, DT}
+#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, DMAX, DMAX, DT}
 #define SSD_MoNum_1st			2u							//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st			4u							//单步调试行距单位第一位，共1位
 #define SSD_GetDis_1st			5u							//单步调试行距第一位，共4位
 #define SSD_SpFq_1st			9u							//单步调试速度第一位，共4位
 #define SSD_Mode_1st			13u							//单步调试运行模式第一位，共1位
+#define SSD_Music_Limit			14u							//音乐模式有限无限选项位
+#define SSD_Music_Tone			15u							//音乐模式音频放大系数
+#define SSD_Music_Beat			16u							//音乐模式节拍延长系数
 /*
 	example:
 
@@ -66,6 +70,7 @@ typedef enum
     UpMove		= 1,									//机械臂上行(正转)
     DownMove	= 2,									//机械臂下行(反转)
 	Repeat		= 3,									//反复测试
+	MusicPr		= 4,									//音乐播放
 } Motion_Select;										//算例选择	
 
 //urc开源链接编号

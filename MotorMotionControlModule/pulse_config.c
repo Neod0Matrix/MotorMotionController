@@ -190,7 +190,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		
 		//脉冲自动完成
 		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
-		{
+		{	
 			mcstr -> ReversalCnt = 0;
 			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);	//通道输出关闭
 			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM关闭
@@ -321,12 +321,22 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 	//滑轨上下测试，通用传感器长时间触发检测配置
 	if (count % 2u == 0u && !USrNLTri)					//偶数上升
 	{
-		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Pos_Rev, LimitRun, LineUnit, mcstr);
+		MotorMotionController(	mcstr -> SpeedFrequency, 
+								MaxLimit_Dis, 
+								Pos_Rev, 
+								LimitRun, 
+								LineUnit, 
+								mcstr);
 		WaitForSR_Trigger(ULSR);						//等待传感器长期检测	
 	}
 	else if (count % 2u != 0u && !DSrNLTri)				//奇数下降
 	{
-		MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
+		MotorMotionController(	mcstr -> SpeedFrequency, 
+								MaxLimit_Dis, 
+								Nav_Rev, 
+								LimitRun, 
+								LineUnit, 
+								mcstr);
 		WaitForSR_Trigger(DLSR);						//等待传感器长期检测
 	}
 	MotorBasicDriver(&st_motorAcfg, StopRun);

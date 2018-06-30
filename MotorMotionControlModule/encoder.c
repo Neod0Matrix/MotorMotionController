@@ -133,7 +133,8 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 	if (Return_Error_Type == Error_Clear 							//无错误状态
 		&& pwsf != JBoot 											//初始化完成状态
 		&& globalSleepflag == SysOrdWork 							//非睡眠状态
-		&& mcstr -> MotorStatusFlag == Run) 						//电机处于运动状态
+		//&& mcstr -> MotorStatusFlag == Run) 						//电机处于运动状态
+		)
 	{
 		if (divFreqSem++ == TickDivsIntervalus(Encoder_SampleTime) - 1)
 		{
@@ -152,18 +153,14 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 			encoder_cnt_dx = abs(encoder_cnt_x1 - encoder_cnt_x2);
 			encoder_cnt_dx = ((u16)EncoderLineValue - encoder_cnt_dx > 
 				encoder_cnt_dx)? encoder_cnt_dx:(u16)EncoderLineValue - encoder_cnt_dx;
-			
-			//抛弃零值缺失
-			if (encoder_cnt_dx != 0)
-			{
-				/*
-					计算速度(理想时间假设)，并配置一阶卡尔曼滤波对输出进行数字滤波
-					速度的串口输出调试切换到中断服务函数外部进行，避免电机卡顿
-				*/
-				mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) 
-					/ (float)(Encoder_SampleTime / 1000000.f);		
-				mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
-			}
+
+			/*
+				计算速度(理想时间假设)，并配置一阶卡尔曼滤波对输出进行数字滤波
+				速度的串口输出调试切换到中断服务函数外部进行，避免电机卡顿
+			*/
+			mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) 
+				/ (float)(Encoder_SampleTime / 1000000.f);		
+			mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
 		}
 	}
 	//错误状态和电机静置状态速度清零

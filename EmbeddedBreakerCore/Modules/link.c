@@ -96,8 +96,8 @@ void Modules_ProtocolTask (void)
 	char* output_cache;
 #define OUTPUT_CACHE_SIZE	100
 	
-	//打印标志，算例编号，圈数，急停不显示
-	if (SSD_MotionNumber != Stew_All)
+	//仅最简算例打印标志，算例编号，圈数
+	if (SSD_MotionNumber == UpMove || SSD_MotionNumber == DownMove)
 	{
 		__ShellHeadSymbol__; U1SD("Please Confirm Motion Parameter: ");
 		
@@ -128,17 +128,31 @@ void Modules_ProtocolTask (void)
 		break;
 	//上下行基本算例
 	case UpMove: 		
-		MotorMotionController(SSD_Speed, SSD_GetDistance, Pos_Rev, SSD_Mrmflag, SSD_Lrsflag, &st_motorAcfg); 
+		MotorMotionController(	SSD_Speed, 
+								SSD_GetDistance, 
+								Pos_Rev, 
+								SSD_Mrmflag, 
+								SSD_Lrsflag, 
+								&st_motorAcfg); 
 		break;			
 	case DownMove: 		
-		MotorMotionController(SSD_Speed, SSD_GetDistance, Nav_Rev, SSD_Mrmflag, SSD_Lrsflag, &st_motorAcfg); 
+		MotorMotionController(	SSD_Speed, 
+								SSD_GetDistance, 
+								Nav_Rev, 
+								SSD_Mrmflag, 
+								SSD_Lrsflag, 
+								&st_motorAcfg); 
 		break;
 	//重复性测试
 	case Repeat: 		
 		RepeatTestMotion(&st_motorAcfg); 						
 		break;
+	//音乐播放
+	case MusicPr:
+		MusicPlayerCallback(&st_motorAcfg);
+		break;
 	}
-	EncoderCount_ReadValue();								//显示当前编码器读数
+	EncoderCount_ReadValue();								//动作完成后显示当前编码器读数
 	
 	if (SSD_MotionNumber != Stew_All)
 	{
@@ -236,6 +250,7 @@ void Modules_NonInterruptTask (void)
 		&& globalSleepflag == SysOrdWork 							//非睡眠状态
 		&& st_motorAcfg.MotorStatusFlag == Run) 					//电机处于运动状态
 	{
+		//仅打印运动量
 		if (encodeMesSpeed != 0.f)
 		{
 			//输出计数
