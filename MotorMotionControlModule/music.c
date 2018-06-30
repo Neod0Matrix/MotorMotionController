@@ -25,7 +25,7 @@ void MusicPlayerDemo (MotorMotionSetting *mcstr, const u8 mtfa[], const u8 mbla[
 	for (i = 0; i < arrayLength; i++)
 	{	
 		MotorMotionController (	(tac != 0)? *(mtfa + i) * tac:*(mtfa + i), 
-								(tac != 0)? *(mbla + i) * tac:*(mbla + i), 
+								(bac != 0)? *(mbla + i) * bac:*(mbla + i), 
 								(i % 2 == 0)? Pos_Rev:Nav_Rev, 					//正反转交替
 								LimitRun, 
 								RadUnit, 
@@ -53,11 +53,17 @@ void MusicPlayerCallback (MotorMotionSetting *mcstr)
 	
 	//无限播放模式
 	if (musicLimitFlag == True)
-		while (True)									
+	{
+		while (Return_Error_Type == Error_Clear)	
+		{
 			MusicPlayerDemo(mcstr, musicToneFreqArray, musicBeatLongArray, toneAmpConst, beatAmpConst);
+		}
+	}
 	//有限播放模式
 	else
+	{
 		MusicPlayerDemo(mcstr, musicToneFreqArray, musicBeatLongArray, toneAmpConst, beatAmpConst);
+	}
 }
 
 //====================================================================================================

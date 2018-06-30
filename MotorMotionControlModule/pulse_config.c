@@ -314,7 +314,8 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 
 /*
 	滑轨上下测试
-	传送参数：计数变量(偶数上升，奇数下降)
+	传送参数：计数变量(偶数上升，奇数下降)	
+	这个功能必须在传感器安装后使用，不然会卡死
 */
 void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 {
@@ -342,7 +343,10 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 	MotorBasicDriver(&st_motorAcfg, StopRun);
 }
 
-//传感器反复测试运动算例
+/*
+	传感器反复测试运动算例
+	这个功能必须在传感器安装后使用，不然会卡死
+*/
 void RepeatTestMotion (MotorMotionSetting *mcstr)
 {
 	u16 repeatCnt = 0u;

@@ -93,7 +93,7 @@ void Modules_ProtocolTask (void)
 	//一字模式位
 	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(*(USART1_RX_BUF + SSD_Mode_1st));
 	
-	char* output_cache;
+	char *output_cache;
 #define OUTPUT_CACHE_SIZE	100
 	
 	//仅最简算例打印标志，算例编号，圈数
@@ -115,6 +115,7 @@ void Modules_ProtocolTask (void)
 		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == UnlimitRun)
 			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: UnlimitRun\r\n", 
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);	
+		
 		U1SD("%s", output_cache);
 		free((void*)output_cache);
 	}
@@ -123,10 +124,10 @@ void Modules_ProtocolTask (void)
 	{
 	//急停
 	case Stew_All: 		
-		MotorBasicDriver(&st_motorAcfg, StopRun); 
+		MotorBasicDriver(&st_motorAcfg, StopRun); 			//调用基础控制单元急停
 		//EMERGENCYSTOP;									//协议通信急停								
 		break;
-	//上下行基本算例
+	//上下行基本算例(MotorMotionController函数用法示例)
 	case UpMove: 		
 		MotorMotionController(	SSD_Speed, 
 								SSD_GetDistance, 
@@ -143,6 +144,7 @@ void Modules_ProtocolTask (void)
 								SSD_Lrsflag, 
 								&st_motorAcfg); 
 		break;
+	//高级运动算例过程-顺序控制系统
 	//重复性测试
 	case Repeat: 		
 		RepeatTestMotion(&st_motorAcfg); 						
@@ -153,11 +155,6 @@ void Modules_ProtocolTask (void)
 		break;
 	}
 	EncoderCount_ReadValue();								//动作完成后显示当前编码器读数
-	
-	if (SSD_MotionNumber != Stew_All)
-	{
-		__ShellHeadSymbol__; U1SD("Order Has Started to Execute\r\n");
-	}
 }
 
 //OLED常量显示屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数

@@ -132,9 +132,7 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 	
 	if (Return_Error_Type == Error_Clear 							//无错误状态
 		&& pwsf != JBoot 											//初始化完成状态
-		&& globalSleepflag == SysOrdWork 							//非睡眠状态
-		//&& mcstr -> MotorStatusFlag == Run) 						//电机处于运动状态
-		)
+		&& globalSleepflag == SysOrdWork) 							//非睡眠状态
 	{
 		if (divFreqSem++ == TickDivsIntervalus(Encoder_SampleTime) - 1)
 		{
@@ -163,8 +161,8 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 			mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
 		}
 	}
-	//错误状态和电机静置状态速度清零
-	else if (Return_Error_Type != Error_Clear || mcstr -> MotorStatusFlag != Run)
+	//电机静置状态测量值自动清零
+	else if (mcstr -> MotorStatusFlag == Stew)
 	{
 		encoder_cnt_dx = 0;
 		mes_speed = 0.f;
