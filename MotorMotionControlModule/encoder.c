@@ -117,6 +117,7 @@ u16 EncoderCount_ReadValue (void)
 	u16 encoder_cnt;
 	
 	encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;				//获取计数值
+	TIM_SetCounter(Encoder_Timerx, 0);								//读取完成后清零复位(绝对位置变相对位置)		
 	__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
 
 	return encoder_cnt;
@@ -157,7 +158,7 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 				速度的串口输出调试切换到中断服务函数外部进行，避免电机卡顿
 			*/
 			mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) 
-				/ (float)(Encoder_SampleTime / 1000000.f);		
+				/ ((float)(Encoder_SampleTime) / 1000000.f);		
 			mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
 		}
 	}

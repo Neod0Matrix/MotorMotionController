@@ -29,6 +29,7 @@ static int Protocol_Stack[][Protocol_Stack_Size] =
 		@EmbeddedBreakerCore Extern API Insert
 	*/
 	/*5*/	Modules_Protocol,
+	/*6*/	Offline_Protocol,
 };
 
 //通信起始标志
@@ -72,12 +73,6 @@ u8 HexCode_ToASCII (u8 hexcode)
 	
 	return ascii; 
 } 
-
-//通信测试
-void CommunicationTest (void)
-{
-	__ShellHeadSymbol__; U1SD("Communication Successful\r\n");
-}
 
 /*
 	协议检查指令匹配
@@ -181,6 +176,9 @@ void OrderResponse_Handler (void)
 		*/
 		case pMDLS:
 			Modules_ProtocolTask();									
+			break;
+		case pOLCP:
+			UpperMonitorOfflineControl(&st_motorAcfg);				//上位机脱机控制
 			break;
         }
 		

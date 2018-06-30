@@ -13,6 +13,7 @@
 #include "sigmod.h"											//S形加减速
 #include "encoder.h"										//光电编码器
 #include "music.h"											//音乐播放器
+#include "offline.h"										//脱机控制协议
 
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
@@ -35,14 +36,22 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 
 //模块使用的协议链接，尽量整合到一条
 /*
-	电机单步调试协议
-	协议18位，除去字头字尾有15位
-	后一位表示算列类型，前5位表示行距(1位指示单位，4位指示长度
-	再后面5位表示速度，单位hz，再后一位表示模式
-	空2位
+	电机基础调试与扩展高级运动算例使用协议
+
+	example:
+	第2、3位00 01: 					算例#1，具体见算例定义Motion_Select
+	第4位00:						行距单位rad，具体见行距单位定义LineRadSelect
+	第5、6、7、8位00 03 06 00: 		行距360，单位由第4位决定
+	第9、10、11、12位01 00 00 00:	速度1000，单位为Hz，直接指向发送的脉冲频率
+	第13位00:						模式0，有限运行(位置模式)，具体见模式定义MotorRunMode
+	第14位00:						音乐播放无限模式，有限00，无限01
+	第15位05:						音频放大系数
+	第16位05:						节拍放大系数
+	
+	AA 1A 00 01 00 00 03 06 00 01 00 00 00 00 00 05 05 FF
 */
 #define MDLS					0x1A
-#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, NB, DMAX, DMAX, DT}
+#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, 0x01, DMAX, DMAX, DT}
 #define SSD_MoNum_1st			2u							//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st			4u							//单步调试行距单位第一位，共1位
 #define SSD_GetDis_1st			5u							//单步调试行距第一位，共4位
@@ -51,30 +60,16 @@ extern ARM_Sensor_EXTI_Setting		ASES_Switch;
 #define SSD_Music_Limit			14u							//音乐模式有限无限选项位
 #define SSD_Music_Tone			15u							//音乐模式音频放大系数
 #define SSD_Music_Beat			16u							//音乐模式节拍延长系数
-/*
-	example:
-
-	第2、3位00 01: 					算例#1，up_move，具体见算例定义Motion_Select
-	第4位00:						行距单位，00 rad 01 line，具体见行距单位定义LineRadSelect
-	第5、6、7、8位00 03 06 00: 		行距360，单位由第4位决定
-	第9、10、11、12位01 00 00 00:	速度1000，单位为Hz，直接指向发送的脉冲频率
-	第13位00:						模式0，有限运行(位置模式)，具体见模式定义MotorRunMode
-	第14位00:						音乐播放选项的有限无限模式，有限00，无限01
-	第15位05:						音频放大系数
-	第16位05:						节拍放大系数
-	
-	AA 1A 00 01 00 00 03 06 00 01 00 00 00 00 00 05 05 FF
-*/
 
 //对运动算例进行串口查询编号
 typedef enum
 {
-    Stew_All 	= 0,									//急停
-    UpMove		= 1,									//机械臂上行(正转)
-    DownMove	= 2,									//机械臂下行(反转)
-	Repeat		= 3,									//反复测试
-	MusicPr		= 4,									//音乐播放
-} Motion_Select;										//算例选择	
+    Stew_All 	= 0,										//急停
+    UpMove		= 1,										//机械臂上行(正转)
+    DownMove	= 2,										//机械臂下行(反转)
+	Repeat		= 3,										//反复测试
+	MusicPr		= 4,										//音乐播放
+} Motion_Select;											//算例选择	
 
 //urc开源链接编号
 typedef enum
