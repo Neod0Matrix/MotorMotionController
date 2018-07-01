@@ -19,6 +19,7 @@ extern kf_1deriv_factor ecstr;
 
 void EncoderPhase_IO_Init (void);
 void TIM8_EncoderCounter_Config (void);
+void EncoderCount_SetZero (void);
 u16 EncoderCount_ReadValue (void);
 float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr);
 

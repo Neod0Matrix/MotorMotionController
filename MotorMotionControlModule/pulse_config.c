@@ -180,6 +180,17 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 	}
 }
 
+//电机运行停止(可以是因为错误发生，也可以是因为脉冲运行结束)
+void MotorWorkStopFinish (MotorMotionSetting *mcstr)
+{
+	TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
+	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
+	IO_MainPulse = MD_IO_Reset;
+	mcstr -> MotorStatusFlag = Stew;					//标志复位
+	mcstr -> ReversalCnt = mcstr -> ReversalRange;		
+	mcstr -> divFreqCnt	= 0u;	
+}
+
 //电机中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 {
@@ -191,17 +202,26 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		//脉冲自动完成
 		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
 		{	
-			mcstr -> ReversalCnt = 0;
-			TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);	//通道输出关闭
-			TIM_Cmd(TIMERx_Number, DISABLE);			//TIM关闭
-			IO_MainPulse = MD_IO_Reset;
-			mcstr -> MotorStatusFlag = Stew;			//标志复位
+			mcstr -> ReversalCnt = 0;					//复位脉冲计数变量，回收进程
+			MotorWorkStopFinish(mcstr);
 			
 			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
 			EncoderCount_ReadValue();					//显示当前编码器读数
 			
 			return;
 		}
+		
+		//发生错误紧急停止
+		if (Return_Error_Type != Error_Clear)		
+		{
+			MotorWorkStopFinish(mcstr);
+			
+			__ShellHeadSymbol__; U1SD("Emergency Stop Trigger, Motor Stop\r\n");
+			EncoderCount_ReadValue();					//显示当前编码器读数
+			
+			return;
+		}
+		
 		//分频产生对应的脉冲频率
 		if (mcstr -> divFreqCnt++ == mcstr -> CalDivFreqConst)
 		{
@@ -219,7 +239,7 @@ void TIM1_CC_IRQHandler (void)
 	OSIntEnter();
 #endif
 	
-	//仅在无错误状态下使能
+	//仅在无错误状态下使能该过程
 	if (Return_Error_Type == Error_Clear)			
 	{		
 		MotorPulseProduceHandler(&st_motorAcfg);
@@ -231,7 +251,7 @@ void TIM1_CC_IRQHandler (void)
 #endif
 }
 
-//电机驱动
+//电机基础驱动
 //传参：电机编号，结构体频率，结构体距离，使能开关
 void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 {	
@@ -255,16 +275,8 @@ void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 		}
 		break;
 	case StopRun:
-		//开关使能
-		TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);		//通道输出
-		TIM_Cmd(TIMERx_Number, DISABLE);				//TIMER使能选择
+		MotorWorkStopFinish(mcstr);
 		
-		IO_MainPulse = MD_IO_Reset;
-		
-		//参量更新
-		mcstr -> ReversalCnt = mcstr -> ReversalRange;	
-		mcstr -> MotorStatusFlag = Stew;		
-		mcstr -> divFreqCnt	= 0u;	
 		__ShellHeadSymbol__; U1SD("MotorDriver Emergency Stop\r\n");
 		break;
 	}
@@ -310,6 +322,25 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 		else 
 			MotorBasicDriver(mcstr, StopRun);
 	}
+}
+
+//电机运动外部中断急停
+void MotorEXTIEmergencyHandler (MotorMotionSetting *mcstr)
+{
+	static Bool_ClassType errorFlag = False;
+	
+	if (errorFlag == False)
+	{
+		errorFlag = True;
+		EMERGENCYSTOP;		
+		MotorBasicDriver(mcstr, StopRun);				
+	}			
+	else
+	{
+		errorFlag = False;
+		ERROR_CLEAR;
+	}	
+	EncoderCount_SetZero();											//清除编码器计数	
 }
 
 /*

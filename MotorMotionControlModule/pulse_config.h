@@ -88,7 +88,9 @@ void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		/
 void FrequencyAlgoUpdate (MotorMotionSetting *mcstr);								//更新频率
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
 void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw);			//电机底层驱动
+void MotorWorkStopFinish (MotorMotionSetting *mcstr);								//电机运行停止
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr);							//电机脉冲产生中断
+void MotorEXTIEmergencyHandler (MotorMotionSetting *mcstr);							//电机外部中断急停
 
 //运动测试算例
 extern void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 

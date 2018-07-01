@@ -129,11 +129,11 @@ void Modules_ProtocolTask (void)
 		break;
 	//上下行基本算例(MotorMotionController函数用法示例)
 	case UpMove: 		
-		MotorMotionController(	SSD_Speed, 
-								SSD_GetDistance, 
-								Pos_Rev, 
-								SSD_Mrmflag, 
-								SSD_Lrsflag, 
+		MotorMotionController(	SSD_Speed, 					//输入速度
+								SSD_GetDistance, 			//输入行距
+								Pos_Rev, 					//输入转向
+								SSD_Mrmflag, 				//有限无限模式
+								SSD_Lrsflag, 				//行距单位
 								&st_motorAcfg); 
 		break;			
 	case DownMove: 		
@@ -303,6 +303,13 @@ void Modules_RTC_TaskScheduler (void)
 void Modules_StatusReqHandler (void)
 {
 	//此项设计可以减少模块指令的多余添加
+}
+
+//模块插入到exti.c的PB8外部中断函数EXTI9_5_IRQHandler内，触发外部中断打断
+void Modules_EXTI8_IRQHandler (void)
+{
+	//通常来说可以在工控系统内紧急停止电机运转
+	MotorEXTIEmergencyHandler(&st_motorAcfg);						//电机停止
 }
 
 //====================================================================================================

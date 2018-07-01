@@ -67,7 +67,8 @@ void TIM8_EncoderCounter_Config (void)
 	//TIM_ARRPreloadConfig(Encoder_Timerx, ENABLE);					//使能预装载
     TIM_ClearFlag(Encoder_Timerx, TIM_FLAG_Update);					//清除TIM的更新标志位
     TIM_ITConfig(Encoder_Timerx, TIM_IT_Update, ENABLE);			//运行更新中断 
-	TIM_SetCounter(Encoder_Timerx, 0);								//定时器计数器初始
+	
+	EncoderCount_SetZero();											//定时器计数器初始
     										
     TIM_Cmd(Encoder_Timerx, ENABLE);   			
 
@@ -111,13 +112,19 @@ void EXTI2_IRQHandler (void)
 #endif
 }
 
+//清除编码器计数
+void EncoderCount_SetZero (void)
+{
+	TIM_SetCounter(Encoder_Timerx, 0);								
+}
+
 //读取编码器输出值
 u16 EncoderCount_ReadValue (void)
 {
 	u16 encoder_cnt;
 	
 	encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;				//获取计数值
-	TIM_SetCounter(Encoder_Timerx, 0);								//读取完成后清零复位(绝对位置变相对位置)		
+	EncoderCount_SetZero();											//读取完成后清零复位(绝对位置变相对位置)	
 	__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
 
 	return encoder_cnt;
