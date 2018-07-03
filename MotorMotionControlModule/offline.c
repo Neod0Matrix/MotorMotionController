@@ -35,21 +35,38 @@ void UpperMonitorOfflineControl (MotorMotionSetting *mcstr)
 	//进入脱机-无限循环栈
 	while (Return_Error_Type == Error_Clear)
 	{
+		LEDGroupCtrl(led_2, On);									//脱机指示灯
+		
 		//第一组动作
-		MotorMotionController(OLCP_StableFreq, RadG1, dirG1, LimitRun, RadUnit, mcstr);
-		delay_ms(1000 + OLCP_45degreeDelayConst * RadG1);
+		if (RadG1 != 0)
+		{
+			MotorMotionController(OLCP_StableFreq, RadG1, dirG1, LimitRun, RadUnit, mcstr);
+			delay_ms(1000 + OLCP_45degreeDelayConst * RadG1);
+		}
 		//第二组动作
-		MotorMotionController(OLCP_StableFreq, RadG2, dirG2, LimitRun, RadUnit, mcstr);
-		delay_ms(1000 + OLCP_45degreeDelayConst * RadG2);
+		if (RadG2 != 0)
+		{
+			MotorMotionController(OLCP_StableFreq, RadG2, dirG2, LimitRun, RadUnit, mcstr);
+			delay_ms(1000 + OLCP_45degreeDelayConst * RadG2);
+		}
 		//第三组动作
-		MotorMotionController(OLCP_StableFreq, RadG3, dirG3, LimitRun, RadUnit, mcstr);
-		delay_ms(1000 + OLCP_45degreeDelayConst * RadG3);
+		if (RadG3 != 0)
+		{
+			MotorMotionController(OLCP_StableFreq, RadG3, dirG3, LimitRun, RadUnit, mcstr);
+			delay_ms(1000 + OLCP_45degreeDelayConst * RadG3);
+		}
 		//第四组动作
-		MotorMotionController(OLCP_StableFreq, RadG4, dirG4, LimitRun, RadUnit, mcstr);
-		delay_ms(1000 + OLCP_45degreeDelayConst * RadG4);
+		if (RadG4 != 0)
+		{
+			MotorMotionController(OLCP_StableFreq, RadG4, dirG4, LimitRun, RadUnit, mcstr);
+			delay_ms(1000 + OLCP_45degreeDelayConst * RadG4);
+		}
 		//第五组动作
-		MotorMotionController(OLCP_StableFreq, RadG5, dirG5, LimitRun, RadUnit, mcstr);
-		delay_ms(1000 + OLCP_45degreeDelayConst * RadG5);
+		if (RadG5 != 0)
+		{
+			MotorMotionController(OLCP_StableFreq, RadG5, dirG5, LimitRun, RadUnit, mcstr);
+			delay_ms(1000 + OLCP_45degreeDelayConst * RadG5);
+		}
 	}
 }
 

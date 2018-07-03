@@ -102,7 +102,7 @@ void EXTI2_IRQHandler (void)
 	
 	if (EXTI_GetITStatus(Encoder_Zphase_EXTI_Line) != RESET)  
 	{		
-		TIM_SetCounter(Encoder_Timerx, 0);							//遇到相对0，计数归零
+		EncoderCount_SetZero();										
 		TIM_Cmd(Encoder_Timerx, ENABLE);
 	}
 	EXTI_ClearITPendingBit(Encoder_Zphase_EXTI_Line);				//清除EXTI线路挂起位
@@ -124,7 +124,7 @@ u16 EncoderCount_ReadValue (void)
 	u16 encoder_cnt;
 	
 	encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;				//获取计数值
-	EncoderCount_SetZero();											//读取完成后清零复位(绝对位置变相对位置)	
+	//EncoderCount_SetZero();											//读取完成后清零复位(绝对位置变相对位置)	
 	__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
 
 	return encoder_cnt;

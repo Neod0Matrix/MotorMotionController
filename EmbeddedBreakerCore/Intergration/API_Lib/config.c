@@ -86,7 +86,7 @@ void Universal_Resource_Config (void)
 		包括随机灯和呼吸灯，如果外设模块需要LED指示
 		需要先关闭这些功能
 	*/
-	Light_Switch		= Light_Enable;					//Light_Enable		Light_Disable
+	Light_Switch		= Light_Disable;					//Light_Enable		Light_Disable
 	
 	/*
 		某些情况下需要UI(0.91 OLED)进行快速刷新显示来提高显示效果

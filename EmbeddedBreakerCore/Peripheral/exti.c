@@ -74,8 +74,10 @@ void EXTI9_5_IRQHandler (void)
 	
 	if (EXTI_GetITStatus(Stew_EXTI_Line) != RESET)
 	{
-		Modules_EXTI8_IRQHandler();																
-		while (STEW_LTrigger);										//等待急停释放，允许长期检测
+		Modules_EXTI8_IRQHandler();				
+			
+		//等待急停释放(使用工业型急停按钮设置成长按检测，使用测试按键设置成短按检测)
+		while (STEW_NLTrigger);										
 	}	
 	EXTI_ClearITPendingBit(Stew_EXTI_Line);  						//清除EXTI线路挂起位
 	

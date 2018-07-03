@@ -199,9 +199,13 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
     {	
 		TIM_ClearITPendingBit(TIMERx_Number, MotorChnx);
 		
+		LEDGroupCtrl(led_3, On);						//电机运行指示灯
+		
 		//脉冲自动完成
 		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
 		{	
+			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
+			
 			mcstr -> ReversalCnt = 0;					//复位脉冲计数变量，回收进程
 			MotorWorkStopFinish(mcstr);
 			
@@ -214,6 +218,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		//发生错误紧急停止
 		if (Return_Error_Type != Error_Clear)		
 		{
+			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
 			MotorWorkStopFinish(mcstr);
 			
 			__ShellHeadSymbol__; U1SD("Emergency Stop Trigger, Motor Stop\r\n");

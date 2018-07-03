@@ -309,6 +309,8 @@ void Modules_StatusReqHandler (void)
 void Modules_EXTI8_IRQHandler (void)
 {
 	//通常来说可以在工控系统内紧急停止电机运转
+	LEDGroupCtrl(led_2, Off);										//运行指示停止
+	
 	MotorEXTIEmergencyHandler(&st_motorAcfg);						//电机停止
 }
 

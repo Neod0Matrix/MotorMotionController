@@ -158,7 +158,7 @@ void BlinkLED_StatusCtrl (void)
 			&& Light_Switch == Light_Enable)
 		{
 			randledBlinkSem = 0u;
-			LEDGroupCtrl(led_3, Blink);	
+			//LEDGroupCtrl(led_3, Blink);	
 			//更新随机闪烁间隔
 			randledinterval = RangeRandom(InvalMinLimit, InvalMaxLimit);
 		}
@@ -190,8 +190,8 @@ void BreathPWMProduce (LEDGroupNbr nbr, BreathPWMGroup *led_nbr)
 		&& globalSleepflag == SysOrdWork && Light_Switch == Light_Enable) 
 	{
 		//初始状态
-		(led_nbr -> breathCtrlSem <= led_nbr -> dutyCycle)? \
-			LEDGroupCtrl(nbr, On) : LEDGroupCtrl(nbr, Off);
+//		(led_nbr -> breathCtrlSem <= led_nbr -> dutyCycle)? \
+//			LEDGroupCtrl(nbr, On) : LEDGroupCtrl(nbr, Off);
 		
 		if (led_nbr -> breathCtrlSem++ == TickDivsIntervalus(led_nbr -> breathInterval) - 1)
 		{
