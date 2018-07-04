@@ -30,14 +30,17 @@ void EncoderPhase_IO_Init (void)
 		PC6 -- A phase
 		PC7 -- B phase
 	*/
-	ucGPIO_Config_Init (RCC_APB2Periph_GPIOC,										
-						GPIO_Mode_IN_FLOATING,						//浮空输入模式		
-						GPIO_Speed_50MHz,						
-						GPIORemapSettingNULL,			
-						GPIO_Pin_6 | GPIO_Pin_7,							
-						GPIOC,					
-						NI,				
-						EBO_Disable);
+	if (Encoder_Switch == Encoder_Enable)
+	{
+		ucGPIO_Config_Init (RCC_APB2Periph_GPIOC,										
+							GPIO_Mode_IN_FLOATING,					//浮空输入模式		
+							GPIO_Speed_50MHz,						
+							GPIORemapSettingNULL,			
+							GPIO_Pin_6 | GPIO_Pin_7,							
+							GPIOC,					
+							NI,				
+							EBO_Disable);
+	}
 }
 
 //编码器定时器8输入比较模式初始化配置
@@ -68,9 +71,11 @@ void TIM8_EncoderCounter_Config (void)
     TIM_ClearFlag(Encoder_Timerx, TIM_FLAG_Update);					//清除TIM的更新标志位
     TIM_ITConfig(Encoder_Timerx, TIM_IT_Update, ENABLE);			//运行更新中断 
 	
-	EncoderCount_SetZero();											//定时器计数器初始
-    										
-    TIM_Cmd(Encoder_Timerx, ENABLE);   			
+	if (Encoder_Switch == Encoder_Enable)
+	{
+		EncoderCount_SetZero();										//定时器计数器初始
+		TIM_Cmd(Encoder_Timerx, ENABLE);   			
+	}
 
 	KF_1DerivFactor_Init(&ecstr);									//编码器测速一阶卡尔曼滤波初始化
 }
@@ -102,8 +107,11 @@ void EXTI2_IRQHandler (void)
 	
 	if (EXTI_GetITStatus(Encoder_Zphase_EXTI_Line) != RESET)  
 	{		
-		EncoderCount_SetZero();										
-		TIM_Cmd(Encoder_Timerx, ENABLE);
+		if (Encoder_Switch == Encoder_Enable)
+		{
+			EncoderCount_SetZero();										
+			TIM_Cmd(Encoder_Timerx, ENABLE);
+		}
 	}
 	EXTI_ClearITPendingBit(Encoder_Zphase_EXTI_Line);				//清除EXTI线路挂起位
 	
@@ -121,11 +129,14 @@ void EncoderCount_SetZero (void)
 //读取编码器输出值
 u16 EncoderCount_ReadValue (void)
 {
-	u16 encoder_cnt;
+	u16 encoder_cnt = 0u;
 	
-	encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;				//获取计数值
-	//EncoderCount_SetZero();											//读取完成后清零复位(绝对位置变相对位置)	
-	__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
+	if (Encoder_Switch == Encoder_Enable)
+	{
+		encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;			//获取计数值
+		//EncoderCount_SetZero();									//读取完成后清零复位(绝对位置变相对位置)	
+		__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
+	}
 
 	return encoder_cnt;
 }
@@ -140,7 +151,8 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 	
 	if (Return_Error_Type == Error_Clear 							//无错误状态
 		&& pwsf != JBoot 											//初始化完成状态
-		&& globalSleepflag == SysOrdWork) 							//非睡眠状态
+		&& globalSleepflag == SysOrdWork 							//非睡眠状态
+		&& Encoder_Switch == Encoder_Enable)						//编码器使能
 	{
 		if (divFreqSem++ == TickDivsIntervalus(Encoder_SampleTime) - 1)
 		{

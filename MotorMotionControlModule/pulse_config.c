@@ -80,10 +80,10 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 	mcstr -> SpeedFrequency 	= 0u;					//设定频率
 	mcstr -> divFreqCnt			= 0u;					//分频计数器	
 	mcstr -> CalDivFreqConst 	= 0u;					//分频系数
-	mcstr -> MotorStatusFlag	= Stew;
-	mcstr -> MotorModeFlag		= LimitRun;
-	mcstr -> DistanceUnitLS		= RadUnit;	
-	mcstr -> RevDirectionFlag	= Pos_Rev;
+	mcstr -> MotorStatusFlag	= Stew;					//开启状态停止
+	mcstr -> MotorModeFlag		= LimitRun;				//有限运行模式
+	mcstr -> DistanceUnitLS		= RadUnit;				//默认角度制
+	mcstr -> RevDirectionFlag	= Pos_Rev;				//默认正转
 }
 
 //TIM1作为电机驱动定时器初始化
@@ -187,8 +187,6 @@ void MotorWorkStopFinish (MotorMotionSetting *mcstr)
 	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
 	IO_MainPulse = MD_IO_Reset;
 	mcstr -> MotorStatusFlag = Stew;					//标志复位
-	mcstr -> ReversalCnt = mcstr -> ReversalRange;		
-	mcstr -> divFreqCnt	= 0u;	
 }
 
 //电机中断
@@ -201,27 +199,15 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		
 		LEDGroupCtrl(led_3, On);						//电机运行指示灯
 		
-		//脉冲自动完成
-		if (mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun)		
+		//脉冲自动完成or发生错误紧急停止
+		if ((mcstr -> ReversalCnt == mcstr -> ReversalRange && mcstr -> MotorModeFlag != UnlimitRun) 
+			|| (Return_Error_Type != Error_Clear))		
 		{	
 			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
 			
 			mcstr -> ReversalCnt = 0;					//复位脉冲计数变量，回收进程
 			MotorWorkStopFinish(mcstr);
-			
-			__ShellHeadSymbol__; U1SD("MotorDriver Has Finished Work\r\n");
-			EncoderCount_ReadValue();					//显示当前编码器读数
-			
-			return;
-		}
-		
-		//发生错误紧急停止
-		if (Return_Error_Type != Error_Clear)		
-		{
-			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
-			MotorWorkStopFinish(mcstr);
-			
-			__ShellHeadSymbol__; U1SD("Emergency Stop Trigger, Motor Stop\r\n");
+
 			EncoderCount_ReadValue();					//显示当前编码器读数
 			
 			return;
@@ -230,8 +216,8 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		//分频产生对应的脉冲频率
 		if (mcstr -> divFreqCnt++ == mcstr -> CalDivFreqConst)
 		{
-			mcstr -> divFreqCnt = 0;
-			IO_MainPulse = !IO_MainPulse;	
+			mcstr -> divFreqCnt = 0;					//计数变量复位
+			IO_MainPulse = !IO_MainPulse;				//IO翻转产生脉冲
 			mcstr -> ReversalCnt++;
 		}
     }
@@ -273,8 +259,8 @@ void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 			mcstr -> divFreqCnt	= 0;
 			
 			//开关使能
-			TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	//通道输出
-			TIM_Cmd(TIMERx_Number, ENABLE);				//TIMER使能选择
+			TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
+			TIM_Cmd(TIMERx_Number, ENABLE);				
 			
 			mcstr -> MotorStatusFlag = Run;
 		}
@@ -338,14 +324,19 @@ void MotorEXTIEmergencyHandler (MotorMotionSetting *mcstr)
 	{
 		errorFlag = True;
 		EMERGENCYSTOP;		
-		MotorBasicDriver(mcstr, StopRun);				
 	}			
 	else
 	{
 		errorFlag = False;
 		ERROR_CLEAR;
-	}	
-	EncoderCount_SetZero();											//清除编码器计数	
+	}		
+	
+	//急停跳出该死的while循环
+	offline_JumpOutWhileLoop = True;					
+	music_JumpOutWhileLoop = True;			
+	
+	MotorBasicDriver(mcstr, StopRun);	
+	EncoderCount_SetZero();								//清除编码器计数	
 }
 
 /*

@@ -52,6 +52,7 @@ typedef enum
 	*/
 	pMDLS	= 5,
 	pOLCP	= 6,
+	pADCP	= 7,
 } Protocol_Order;
 extern Protocol_Order PO_Judge;							//判断标识
 

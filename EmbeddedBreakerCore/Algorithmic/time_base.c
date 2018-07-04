@@ -42,6 +42,8 @@ void TIM2_IRQHandler (void)
 		BlinkLED_StatusCtrl();								//闪烁LED动作处理
 		OLED_PageAlterCtrl();								//OLED切屏控制
 		
+		AnologPWMProduce();									//模拟量PWM发生							
+		
 		/*
 			@EmbeddedBreakerCore Extern API Insert
 		*/

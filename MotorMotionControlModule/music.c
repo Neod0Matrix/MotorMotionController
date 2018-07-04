@@ -4,6 +4,8 @@
 //====================================================================================================
 //步进电机简易音乐播放器
 
+Bool_ClassType music_JumpOutWhileLoop = False;
+
 //实际播放效果是不明电音
 const u8 musicToneFreqArray[] = {	212, 212, 190, 212, 159, 
 									169, 212, 212, 190, 212, 
@@ -51,10 +53,12 @@ void MusicPlayerCallback (MotorMotionSetting *mcstr)
 	//打印放大系数
 	__ShellHeadSymbol__; U1SD("Tone Amplify Const: %d, Beat Amplify Const: %d\r\n", toneAmpConst, beatAmpConst);
 	
+	music_JumpOutWhileLoop = False;
+	
 	//无限播放模式
 	if (musicLimitFlag == True)
 	{
-		while (Return_Error_Type == Error_Clear)	
+		while (Return_Error_Type == Error_Clear && music_JumpOutWhileLoop == False)	
 		{
 			MusicPlayerDemo(mcstr, musicToneFreqArray, musicBeatLongArray, toneAmpConst, beatAmpConst);
 		}

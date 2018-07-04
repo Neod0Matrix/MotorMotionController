@@ -147,20 +147,26 @@ void BlinkLED_StatusCtrl (void)
 	}
 	else if (Return_Error_Type == Error_Clear && pwsf != JBoot && globalSleepflag == SysOrdWork) 
 	{
-		if (runledBlinkSem++ == TickDivsIntervalus(BlinkInterval) - 1
-			&& Light_Switch == Light_Enable)
+		//外设运行指示绿灯
+		if (runledBlinkSem++ == TickDivsIntervalus(BlinkInterval) - 1)
 		{
 			runledBlinkSem = 0u;
 			LEDGroupCtrl(led_1, Blink);															
 		}
-		//可以关闭随机灯
+		//随机灯
 		if (randledBlinkSem++ == TickDivsIntervalus(randledinterval) - 1 
 			&& Light_Switch == Light_Enable)
 		{
 			randledBlinkSem = 0u;
 			//LEDGroupCtrl(led_3, Blink);	
+			
 			//更新随机闪烁间隔
 			randledinterval = RangeRandom(InvalMinLimit, InvalMaxLimit);
+		}
+		//关闭随机灯
+		else if (Light_Switch == Light_Disable)
+		{
+			//这里不作处理
 		}
 	}
 }
@@ -190,8 +196,8 @@ void BreathPWMProduce (LEDGroupNbr nbr, BreathPWMGroup *led_nbr)
 		&& globalSleepflag == SysOrdWork && Light_Switch == Light_Enable) 
 	{
 		//初始状态
-//		(led_nbr -> breathCtrlSem <= led_nbr -> dutyCycle)? \
-//			LEDGroupCtrl(nbr, On) : LEDGroupCtrl(nbr, Off);
+//		LEDGroupCtrl(nbr, 
+//			(led_nbr -> breathCtrlSem <= led_nbr -> dutyCycle)? On:Off);
 		
 		if (led_nbr -> breathCtrlSem++ == TickDivsIntervalus(led_nbr -> breathInterval) - 1)
 		{

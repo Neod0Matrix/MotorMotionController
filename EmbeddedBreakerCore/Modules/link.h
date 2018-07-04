@@ -33,6 +33,9 @@ extern Init_ARM_Reset_Switch 		Init_Reset_Switch;
 //是否将机械臂传感器设置为外部中断
 typedef enum {ASES_Enable = 1, ASES_Disable = !ASES_Enable}				ARM_Sensor_EXTI_Setting;
 extern ARM_Sensor_EXTI_Setting		ASES_Switch;
+//是否添加编码器作为动作反馈终端
+typedef enum {Encoder_Enable = 1, Encoder_Disable = !Encoder_Enable}	Encoder_FeedbackUsing;
+extern Encoder_FeedbackUsing		Encoder_Switch;
 
 //模块使用的协议链接，尽量整合到一条
 /*
@@ -77,10 +80,11 @@ typedef enum
 	urc_sad 	= 17,
 	urc_areset 	= 18,
 	urc_ases 	= 19,
+	urc_encoder = 20,
 } Modules_SwitchNbr;
 
 //裁去config.h中的定义放到这里来重新定义urc协议长度
-#define Module_Add_urcOption_Count	3u
+#define Module_Add_urcOption_Count	4u
 #define Max_Option_Value		(Module_Add_urcOption_Count + FrameDefault_urcOption_Count)			
 //裁去ui.h中定义的总切屏数到这里来重新定义
 #define Module_Add_oledScreen_Count	1u

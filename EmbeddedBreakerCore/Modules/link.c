@@ -10,6 +10,7 @@
 Sigmod_Acce_Dval_Switch 	SAD_Switch;
 Init_ARM_Reset_Switch 		Init_Reset_Switch;
 ARM_Sensor_EXTI_Setting		ASES_Switch;
+Encoder_FeedbackUsing		Encoder_Switch;
 
 //选项设置，链接到Universal_Resource_Config函数的模块库
 void Modules_UniResConfig (void)
@@ -42,6 +43,13 @@ void Modules_UniResConfig (void)
 		但如果普通检测可能响应不够快
 	*/
 	ASES_Switch			= ASES_Enable;					//ASES_Enable		ASES_Disable
+	
+	/*
+		有条件安装编码器的可以选择这一项
+		不一定每次使用该框架嵌套步进电机驱动器
+		都会有增量式光电编码器
+	*/
+	Encoder_Switch    	= Encoder_Enable;				//Encoder_Enable	Encoder_Disable
 }
 
 //模块选项映射表，链接到urcMapTable_Print函数
@@ -50,6 +58,7 @@ void Modules_URCMap (void)
 	U1SD("\r\n%02d	S-Accel/Dvalue Speed", urc_sad);
 	U1SD("\r\n%02d	Arm Position Reset", urc_areset);
 	U1SD("\r\n%02d 	Arm Sensor EXTI Setting", urc_ases);
+	U1SD("\r\n%02d 	Encoder Feedback Using", urc_encoder);
 }
 
 //选项处理，链接到pclURC_DebugHandler函数
@@ -58,9 +67,10 @@ void Modules_urcDebugHandler (u8 ed_status, Modules_SwitchNbr sw_type)
    //使用前请先更新Modules_SwitchNbr内容
 	switch (sw_type)
 	{
-	case urc_sad: 		SAD_Switch 		= (Sigmod_Acce_Dval_Switch)ed_status; 		break;
-	case urc_areset: 	ASES_Switch 	= (ARM_Sensor_EXTI_Setting)ed_status; 		break;
-	case urc_ases: 		ASES_Switch		= (ARM_Sensor_EXTI_Setting)ed_status;		break;	
+	case urc_sad: 		SAD_Switch 			= (Sigmod_Acce_Dval_Switch)ed_status; 		break;
+	case urc_areset: 	Init_Reset_Switch 	= (Init_ARM_Reset_Switch)ed_status; 		break;
+	case urc_ases: 		ASES_Switch			= (ARM_Sensor_EXTI_Setting)ed_status;		break;	
+	case urc_encoder:	Encoder_Switch		= (Encoder_FeedbackUsing)ed_status;			break;
 	}
 }
 
@@ -182,6 +192,7 @@ void OLED_DisplayModules (u8 page)
 void Modules_HardwareInit (void)
 {
 	MotorDriverLib_Init();
+	AnologDigitalVal_IO_Init();
 }
 
 //硬件底层外部中断初始化，链接到EXTI_Config_Init函数

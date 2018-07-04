@@ -8,6 +8,8 @@
 extern const u8 musicToneFreqArray[];		//音频数组
 extern const u8 musicBeatLongArray[];		//节拍数组
 
+extern Bool_ClassType music_JumpOutWhileLoop;
+
 void MusicPlayerDemo (MotorMotionSetting *mcstr, const u8 mtfa[], const u8 mbla[], u8 tac, u8 bac);
 void MusicPlayerCallback (MotorMotionSetting *mcstr);
 

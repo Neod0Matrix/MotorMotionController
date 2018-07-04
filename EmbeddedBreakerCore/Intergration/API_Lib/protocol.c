@@ -30,6 +30,7 @@ static int Protocol_Stack[][Protocol_Stack_Size] =
 	*/
 	/*5*/	Modules_Protocol,
 	/*6*/	Offline_Protocol,
+	/*7*/	Anolog_Digital_Protocol,
 };
 
 //通信起始标志
@@ -178,6 +179,9 @@ void OrderResponse_Handler (void)
 			break;
 		case pOLCP:
 			UpperMonitorOfflineControl(&st_motorAcfg);				//上位机脱机控制
+			break;
+		case pADCP:
+			Anolog_Digital_Controller();							//开关量、模拟量控制
 			break;
         }
 		
