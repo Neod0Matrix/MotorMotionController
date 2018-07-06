@@ -331,8 +331,7 @@ void MotorEXTIEmergencyHandler (MotorMotionSetting *mcstr)
 		ERROR_CLEAR;
 	}		
 	
-	//急停跳出该死的while循环
-	offline_JumpOutWhileLoop = True;					
+	//急停跳出该死的while循环				
 	music_JumpOutWhileLoop = True;			
 	
 	MotorBasicDriver(mcstr, StopRun);	

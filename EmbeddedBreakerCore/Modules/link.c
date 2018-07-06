@@ -192,7 +192,6 @@ void OLED_DisplayModules (u8 page)
 void Modules_HardwareInit (void)
 {
 	MotorDriverLib_Init();
-	AnologDigitalVal_IO_Init();
 }
 
 //硬件底层外部中断初始化，链接到EXTI_Config_Init函数

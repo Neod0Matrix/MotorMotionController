@@ -13,7 +13,6 @@
 #include "sigmod.h"											//S形加减速
 #include "encoder.h"										//光电编码器
 #include "music.h"											//音乐播放器
-#include "offline.h"										//脱机控制协议
 
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
@@ -51,9 +50,9 @@ extern Encoder_FeedbackUsing		Encoder_Switch;
 	第15位05:						音频放大系数
 	第16位05:						节拍放大系数
 	
-	AA 1A 00 01 00 00 03 06 00 01 00 00 00 00 00 05 05 FF
+	AA 1B 00 01 00 00 03 06 00 01 00 00 00 00 00 05 05 FF
 */
-#define MDLS					0x1A
+#define MDLS					0x1B
 #define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, 0x01, DMAX, DMAX, DT}
 #define SSD_MoNum_1st			2u							//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st			4u							//单步调试行距单位第一位，共1位

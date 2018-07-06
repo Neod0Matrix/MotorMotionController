@@ -24,13 +24,12 @@ static int Protocol_Stack[][Protocol_Stack_Size] =
 	/*3*/	{DH, URC, NB, 0x03, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, DT},
 			//警报的手动触发与清除
 	/*4*/	{DH, MEW, 0x01, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, DT},
-	
+			//PWM波测试
+	/*5*/ 	{DH, PWM, DMAX, DMAX, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, NB, DT},
 	/*
 		@EmbeddedBreakerCore Extern API Insert
 	*/
-	/*5*/	Modules_Protocol,
-	/*6*/	Offline_Protocol,
-	/*7*/	Anolog_Digital_Protocol,
+	/*6*/	Modules_Protocol,
 };
 
 //通信起始标志
@@ -170,18 +169,15 @@ void OrderResponse_Handler (void)
 			__ShellHeadSymbol__; U1SD("Protocol Control Error-Warning\r\n");
 			ManualCtrlEW();											//手动控制报警
 			break;
+		case pPWM:
+			Get_pwmDutyCycle();										//PWM测试输出
+			break;
 		
 		/*
 			@EmbeddedBreakerCore Extern API Insert
 		*/
 		case pMDLS:
 			Modules_ProtocolTask();									
-			break;
-		case pOLCP:
-			UpperMonitorOfflineControl(&st_motorAcfg);				//上位机脱机控制
-			break;
-		case pADCP:
-			Anolog_Digital_Controller();							//开关量、模拟量控制
 			break;
         }
 		

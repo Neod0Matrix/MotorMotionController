@@ -40,9 +40,7 @@ void TIM2_IRQHandler (void)
 		
 		BreathLEDGroupCall();								//呼吸灯动作处理
 		BlinkLED_StatusCtrl();								//闪烁LED动作处理
-		OLED_PageAlterCtrl();								//OLED切屏控制
-		
-		AnologPWMProduce();									//模拟量PWM发生							
+		OLED_PageAlterCtrl();								//OLED切屏控制					
 		
 		/*
 			@EmbeddedBreakerCore Extern API Insert
