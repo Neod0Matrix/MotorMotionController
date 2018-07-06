@@ -8,7 +8,7 @@ Copyright
 Update
 ===============
 
-	最后更新时间: 2018/07/04pm2125
+	最后更新时间: 2018/07/05pm1428
 
 Project Manual
 ==============
@@ -59,8 +59,8 @@ Inner IO Map
 	PA8 ---- LED0
 	PA9/PB6  TXD		
 	PA10/PB7 RXD		I
-	PA11 --- 					*
-	PA12 --- 					*
+	PA11 --- DV_IO				*
+	PA12 --- AV_IO				*
 	PA13 --- SWDIO		I
 	PA14 --- SWCLK
 	PA15 --- KEY1		I	
