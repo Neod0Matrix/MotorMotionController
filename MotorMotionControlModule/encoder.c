@@ -8,9 +8,6 @@
 	若接入5线编码器，则需配置Z相脉冲的外部中断和定时器中断
 */
 
-//初始化定时器8输入比较模式记录编码器的反馈脉冲
-#define Encoder_Timerx				TIM8
-#define	Encoder_RCC_APBxPeriph_TIMx	RCC_APB2Periph_TIM8
 //编码器模式设定模式3，上升下降都计数，即输出四倍频信号
 #define TIM_EncoderMode_TIWhat		TIM_EncoderMode_TI12
 #define TIM_ICPolarity_What			TIM_ICPolarity_BothEdge
@@ -18,10 +15,20 @@
 #define TIM_ICFilter_Number			6
 //编码器测速，采样率分频设置，单位us
 #define Encoder_SampleTime			20000							
-#define EncoderSpeedPrintTime		1000000							
+#define EncoderSpeedPrintTime		1000000		
 
-float encodeMesSpeed;
+EncoderDataCache st_encoderAcfg;
 kf_1deriv_factor ecstr;
+
+//编码器结构体参数初始化
+void EncoderStructure_Init (EncoderDataCache *erstr)
+{
+	erstr -> timx = TIM8;											//测试使用定时器8
+	erstr -> rcc_apbxperiph_timx = RCC_APB2Periph_TIM8;	
+	erstr -> encoderLine = 600;										//测试使用600线编码器
+	erstr -> absolutePos = 0;
+	erstr -> encodeMesSpeed = 0;
+}
 
 //相序输入IO初始化
 void EncoderPhase_IO_Init (void)
@@ -44,37 +51,37 @@ void EncoderPhase_IO_Init (void)
 }
 
 //编码器定时器8输入比较模式初始化配置
-void TIM8_EncoderCounter_Config (void)
+void TIM8_EncoderCounter_Config (EncoderDataCache *erstr)
 {
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
     TIM_ICInitTypeDef TIM_ICInitStructure;
 
-	RCC_APB2PeriphClockCmd(Encoder_RCC_APBxPeriph_TIMx, ENABLE);	//使能TIM时钟
-    TIM_DeInit(Encoder_Timerx);
+	RCC_APB2PeriphClockCmd(erstr -> rcc_apbxperiph_timx, ENABLE);	//使能TIM时钟
+    TIM_DeInit(erstr -> timx);
     TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-    TIM_TimeBaseStructure.TIM_Period = ((u16)EncoderLineValue - 1) * 4; 	//编码器线数代入
+    TIM_TimeBaseStructure.TIM_Period = (erstr -> encoderLine - 1) * 4; //编码器线数代入
     TIM_TimeBaseStructure.TIM_Prescaler = 0; 						//时钟预分频值
     TIM_TimeBaseStructure.TIM_ClockDivision =TIM_CKD_DIV1;			//设置时钟分割 
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; 	//向上计数
-    TIM_TimeBaseInit(Encoder_Timerx, &TIM_TimeBaseStructure);
+    TIM_TimeBaseInit(erstr -> timx, &TIM_TimeBaseStructure);
 
 	//编码器触发模式
-    TIM_EncoderInterfaceConfig(	Encoder_Timerx, 
+    TIM_EncoderInterfaceConfig(	erstr -> timx, 
 								TIM_EncoderMode_TIWhat, 
 								TIM_ICPolarity_What,
 								TIM_ICPolarity_What);
     TIM_ICStructInit(&TIM_ICInitStructure);							//将结构体中的内容缺省输入
     TIM_ICInitStructure.TIM_ICFilter = TIM_ICFilter_Number;  		//选择输入比较滤波器
-    TIM_ICInit(Encoder_Timerx, &TIM_ICInitStructure);				//将TIM_ICInitStructure中的指定参数初始化
+    TIM_ICInit(erstr -> timx, &TIM_ICInitStructure);				//将TIM_ICInitStructure中的指定参数初始化
 
-	//TIM_ARRPreloadConfig(Encoder_Timerx, ENABLE);					//使能预装载
-    TIM_ClearFlag(Encoder_Timerx, TIM_FLAG_Update);					//清除TIM的更新标志位
-    TIM_ITConfig(Encoder_Timerx, TIM_IT_Update, ENABLE);			//运行更新中断 
+	//TIM_ARRPreloadConfig(erstr -> timx, ENABLE);					//使能预装载
+    TIM_ClearFlag(erstr -> timx, TIM_FLAG_Update);					//清除TIM的更新标志位
+    TIM_ITConfig(erstr -> timx, TIM_IT_Update, ENABLE);				//运行更新中断 
 	
 	if (Encoder_Switch == Encoder_Enable)
 	{
-		EncoderCount_SetZero();										//定时器计数器初始
-		TIM_Cmd(Encoder_Timerx, ENABLE);   			
+		EncoderCount_SetZero(erstr);								//定时器计数器初始
+		TIM_Cmd(erstr -> timx, ENABLE);   			
 	}
 
 	KF_1DerivFactor_Init(&ecstr);									//编码器测速一阶卡尔曼滤波初始化
@@ -87,9 +94,9 @@ void TIM8_IRQHandler (void)
 	OSIntEnter();    
 #endif
 	
-    if (TIM_GetFlagStatus(Encoder_Timerx, TIM_FLAG_Update))			
+    if (TIM_GetFlagStatus(st_encoderAcfg.timx, TIM_FLAG_Update))			
     {
-		TIM_ClearITPendingBit(Encoder_Timerx, TIM_IT_Update);
+		TIM_ClearITPendingBit(st_encoderAcfg.timx, TIM_IT_Update);
 		//若无Z相线接入，则该步骤不起作用
     } 
 	
@@ -109,8 +116,8 @@ void EXTI2_IRQHandler (void)
 	{		
 		if (Encoder_Switch == Encoder_Enable)
 		{
-			EncoderCount_SetZero();										
-			TIM_Cmd(Encoder_Timerx, ENABLE);
+			EncoderCount_SetZero(&st_encoderAcfg);										
+			TIM_Cmd(st_encoderAcfg.timx, ENABLE);
 		}
 	}
 	EXTI_ClearITPendingBit(Encoder_Zphase_EXTI_Line);				//清除EXTI线路挂起位
@@ -121,28 +128,24 @@ void EXTI2_IRQHandler (void)
 }
 
 //清除编码器计数
-void EncoderCount_SetZero (void)
+void EncoderCount_SetZero (EncoderDataCache *erstr)
 {
-	TIM_SetCounter(Encoder_Timerx, 0);								
+	TIM_SetCounter(erstr -> timx, 0);								
 }
 
-//读取编码器输出值
-u16 EncoderCount_ReadValue (void)
-{
-	u16 encoder_cnt = 0u;
-	
+//读取编码器绝对位置输出值，一旦调用即更新结构体成员
+void EncoderCount_ReadValue (EncoderDataCache *erstr)
+{	
 	if (Encoder_Switch == Encoder_Enable)
 	{
-		encoder_cnt = TIM_GetCounter(Encoder_Timerx) / 4;			//获取计数值
-		//EncoderCount_SetZero();									//读取完成后清零复位(绝对位置变相对位置)	
-		__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", encoder_cnt);
+		erstr -> absolutePos = TIM_GetCounter(erstr -> timx) / 4;	//获取计数值
+		//EncoderCount_SetZero(&st_encoderAcfg);						//读取完成后清零复位(绝对位置变相对位置)	
+		__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", erstr -> absolutePos);
 	}
-
-	return encoder_cnt;
 }
 
 //利用算法定时器100us时基源生成20ms采样周期(50Hz采样率)进行测速
-float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
+void Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr, EncoderDataCache *erstr)
 {
 	static u16 divFreqSem = 0u, odd_even_flag = 0u;
 	//虚拟测速时间点对应的编码器线数x1，x2
@@ -158,25 +161,25 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 		{
 			divFreqSem = 0u;
 					
-			//利用奇偶相隔获取一对计数值，前后相差Encoder_SampleTime
+			//利用奇偶相隔获取一对计数值，前后相差Encoder_SampleTime左右
 			if (odd_even_flag % 2 == 0)
-				encoder_cnt_x2 = TIM_GetCounter(Encoder_Timerx) / 4;							
+				encoder_cnt_x2 = TIM_GetCounter(erstr -> timx) / 4;							
 			else
-				encoder_cnt_x1 = TIM_GetCounter(Encoder_Timerx) / 4;
+				encoder_cnt_x1 = TIM_GetCounter(erstr -> timx) / 4;
 			if (odd_even_flag > 1000u)
 				odd_even_flag = 0u;
 			odd_even_flag++;
 			
 			//计算编码器线数差值并取绝对值，与最大线数比较，取最小(以此来排除零位置逆差)
 			encoder_cnt_dx = abs(encoder_cnt_x1 - encoder_cnt_x2);
-			encoder_cnt_dx = ((u16)EncoderLineValue - encoder_cnt_dx > 
-				encoder_cnt_dx)? encoder_cnt_dx:(u16)EncoderLineValue - encoder_cnt_dx;
+			encoder_cnt_dx = (erstr -> encoderLine - encoder_cnt_dx > 
+				encoder_cnt_dx)? encoder_cnt_dx:erstr -> encoderLine - encoder_cnt_dx;
 
 			/*
 				计算速度(理想时间假设)，并配置一阶卡尔曼滤波对输出进行数字滤波
 				速度的串口输出调试切换到中断服务函数外部进行，避免电机卡顿
 			*/
-			mes_speed = (encoder_cnt_dx * Encoder_LineTransferRad_Const) 
+			mes_speed = (encoder_cnt_dx * Encoder_LTR_Const(erstr -> encoderLine)) 
 				/ ((float)(Encoder_SampleTime) / 1000000.f);		
 			mes_speed = Kalman_1DerivFilter(mes_speed, &ecstr);	
 		}
@@ -188,7 +191,8 @@ float Encoder_MeasureAxisSpeed (MotorMotionSetting *mcstr)
 		mes_speed = 0.f;
 	}
 	
-	return mes_speed;
+	//全局传参更新结构体存储
+	erstr -> encodeMesSpeed = mes_speed;
 }
 
 //====================================================================================================

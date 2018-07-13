@@ -10,8 +10,8 @@
 
 #include "limit_sensor.h"									//限位传感器
 #include "pulse_config.h"									//电机脉冲配置
-#include "sigmod.h"											//S形加减速
 #include "encoder.h"										//光电编码器
+#include "sigmod.h"											//S形加减速
 #include "music.h"											//音乐播放器
 
 //模块声明

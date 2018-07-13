@@ -132,7 +132,7 @@ void Modules_ProtocolTask (void)
 
 	switch (SSD_MotionNumber)				
 	{
-	//急停
+	//急停(仅对直接输出模式有效，脱机模式请使用急停开关)
 	case Stew_All: 		
 		MotorBasicDriver(&st_motorAcfg, StopRun); 			//调用基础控制单元急停
 		//EMERGENCYSTOP;									//协议通信急停								
@@ -164,7 +164,7 @@ void Modules_ProtocolTask (void)
 		MusicPlayerCallback(&st_motorAcfg);
 		break;
 	}
-	EncoderCount_ReadValue();								//动作完成后显示当前编码器读数
+	EncoderCount_ReadValue(&st_encoderAcfg);				//动作完成后显示当前编码器读数					
 }
 
 //OLED常量显示屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数
@@ -190,8 +190,14 @@ void OLED_DisplayModules (u8 page)
 
 //硬件底层初始化任务，链接到bspPeriSysCalls函数
 void Modules_HardwareInit (void)
-{
-	MotorDriverLib_Init();
+{	
+	PulseDriver_IO_Init();												//脉冲IO口
+	Direction_IO_Init();												//方向IO口
+	EncoderPhase_IO_Init();												//编码器IO口
+	TIM1_MecMotorDriver_Init();											//脉冲发生定时器
+	EncoderStructure_Init(&st_encoderAcfg);								//编码器结构体初始化
+	TIM8_EncoderCounter_Config(&st_encoderAcfg);						//编码器计数器
+	//FreqDisperseTable_Create(st_motorAcfg);							//加减速表生成
 }
 
 //硬件底层外部中断初始化，链接到EXTI_Config_Init函数
@@ -258,19 +264,20 @@ void Modules_NonInterruptTask (void)
 		&& st_motorAcfg.MotorStatusFlag == Run) 					//电机处于运动状态
 	{
 		//仅打印运动量
-		if (encodeMesSpeed != 0.f)
+		if (st_encoderAcfg.encodeMesSpeed != 0.f)
 		{
 			//输出计数
 			if (index > 1000u)
 				index = 1u;
-			__ShellHeadSymbol__; U1SD("Encoder Measure Axis Rev: [%4d] %.4fdegree/s\r\n", index, encodeMesSpeed);
+			__ShellHeadSymbol__; U1SD("Encoder Measure Axis Rev: [%4d] %.4fdegree/s\r\n", 
+				index, st_encoderAcfg.encodeMesSpeed);
 			index++;
 		}
 	}
 	else if (Return_Error_Type != Error_Clear || st_motorAcfg.MotorStatusFlag != Run)
 	{
 		index = 1u;
-		encodeMesSpeed = 0.f;
+		st_encoderAcfg.encodeMesSpeed = 0.f;
 	}
 }
 
@@ -278,7 +285,7 @@ void Modules_NonInterruptTask (void)
 void Modules_InterruptTask (void)
 {
 	//由于中断打印会导致电机卡顿，使用全局变量转移打印任务
-	encodeMesSpeed = Encoder_MeasureAxisSpeed(&st_motorAcfg);
+	Encoder_MeasureAxisSpeed(&st_motorAcfg, &st_encoderAcfg);
 }
 
 //基于RTC时间的任务计划，链接到local_taskmgr.c，默认添加到第四任务
@@ -318,10 +325,27 @@ void Modules_StatusReqHandler (void)
 //模块插入到exti.c的PB8外部中断函数EXTI9_5_IRQHandler内，触发外部中断打断
 void Modules_EXTI8_IRQHandler (void)
 {
+	//电机急停控制
+	static Bool_ClassType errorFlag = False;						//error状态触发flag
+	
 	//通常来说可以在工控系统内紧急停止电机运转
 	LEDGroupCtrl(led_2, Off);										//运行指示停止
+	if (errorFlag == False)
+	{
+		errorFlag = True;
+		EMERGENCYSTOP;		
+	}			
+	else
+	{
+		errorFlag = False;
+		ERROR_CLEAR;
+	}		
 	
-	MotorEXTIEmergencyHandler(&st_motorAcfg);						//电机停止
+	//急停跳出脱机指令的while循环				
+	music_JumpOutWhileLoop = True;			
+	
+	MotorBasicDriver(&st_motorAcfg, StopRun);	
+	EncoderCount_SetZero(&st_encoderAcfg);							//清除编码器计数	
 }
 
 //====================================================================================================

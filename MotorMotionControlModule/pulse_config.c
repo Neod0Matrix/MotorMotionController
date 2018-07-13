@@ -110,17 +110,6 @@ void TIM1_MecMotorDriver_Init (void)
 	IO_Direction = MD_IO_Reset;
 }	
 
-//电机驱动库初始化函数合并，对main函数接口
-void MotorDriverLib_Init (void)
-{
-	PulseDriver_IO_Init();								//脉冲IO口
-	Direction_IO_Init();								//方向IO口
-	EncoderPhase_IO_Init();								//编码器IO口
-	TIM1_MecMotorDriver_Init();							//脉冲发生定时器
-	TIM8_EncoderCounter_Config();						//编码器计数器
-	FreqDisperseTable_Create(st_motorAcfg);				//加减速表生成
-}
-
 /*
 	定时器1作为电机控制定时器配置
 	传参：电机对应定时器通道，使能开关
@@ -208,7 +197,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 			mcstr -> ReversalCnt = 0;					//复位脉冲计数变量，回收进程
 			MotorWorkStopFinish(mcstr);
 
-			EncoderCount_ReadValue();					//显示当前编码器读数
+			//EncoderCount_ReadValue(&st_encoderAcfg);	//显示当前编码器读数
 			
 			return;
 		}
@@ -274,6 +263,7 @@ void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 }
 
 //模块同名函数，基准调用
+//传参：转速(单位Hz)，行距，转向，运行模式(速度/位置)，行距单位，总调用结构体
 void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
 	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
 {	
@@ -313,29 +303,6 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 		else 
 			MotorBasicDriver(mcstr, StopRun);
 	}
-}
-
-//电机运动外部中断急停
-void MotorEXTIEmergencyHandler (MotorMotionSetting *mcstr)
-{
-	static Bool_ClassType errorFlag = False;
-	
-	if (errorFlag == False)
-	{
-		errorFlag = True;
-		EMERGENCYSTOP;		
-	}			
-	else
-	{
-		errorFlag = False;
-		ERROR_CLEAR;
-	}		
-	
-	//急停跳出该死的while循环				
-	music_JumpOutWhileLoop = True;			
-	
-	MotorBasicDriver(mcstr, StopRun);	
-	EncoderCount_SetZero();								//清除编码器计数	
 }
 
 /*
