@@ -140,7 +140,7 @@ void EncoderCount_ReadValue (EncoderDataCache *erstr)
 	{
 		erstr -> absolutePos = TIM_GetCounter(erstr -> timx) / 4;	//获取计数值
 		//EncoderCount_SetZero(&st_encoderAcfg);						//读取完成后清零复位(绝对位置变相对位置)	
-		__ShellHeadSymbol__; U1SD("Encoder Counter Value: %d\r\n", erstr -> absolutePos);
+		__ShellHeadSymbol__; U1SD("Read Motor Encoder Value: %d\r\n", erstr -> absolutePos);
 	}
 }
 

@@ -25,9 +25,11 @@ void Modules_UniResConfig (void)
 	MOE_Switch			= MOE_Enable;					//MOE_Enable		MOE_Disable
 	
 	/*
-		电机柔性启停有多种积极意义
+		使用S型加减速实现电机柔性启停有多种积极意义
 		本工程主要是为了在步进电机相对高速运转时带动更重负载
 		开启后仅在位置控制模式(有限脉冲)中生效
+		S型加减速有可能因不可抗力导致行程偏差(加减磨损)，行程越短偏差越大
+		建议在考量行距精确度时关闭加减速，在考量载荷和换向速度时开启加减速
 	*/
     SAD_Switch 			= SAD_Enable;					//SAD_Enable		SAD_Disable
 	
@@ -164,8 +166,7 @@ void Modules_ProtocolTask (void)
 	case MusicPr:
 		MusicPlayerCallback(&st_motorAcfg);
 		break;
-	}
-	EncoderCount_ReadValue(&st_encoderAcfg);				//动作完成后显示当前编码器读数					
+	}		
 }
 
 //OLED常量显示屏，链接到OLED_DisplayInitConst和UIScreen_DisplayHandler函数
