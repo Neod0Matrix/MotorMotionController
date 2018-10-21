@@ -150,9 +150,9 @@ void USART2_IRQHandler (void)
 #endif
 }
 
-//串口2,printf 函数
+//串口2通道printf函数，输出定向到USART2
 //确保一次发送数据不超过USART2_MAX_SEND_LEN字节
-void u2_printf (char* fmt, ...)
+void u2_printf (char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);

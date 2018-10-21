@@ -71,11 +71,73 @@ void Direction_IO_Init (void)
 						EBO_Enable);
 }
 
+//创建离散值数组 程序初始化时调用一次，系统运行时全局保存
+void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
+{
+	u16 num, step_x, x_interval = X_Range / X_Count;																					
+	
+	//对参数初始化
+	/*
+		参数初始化:
+			参数freq_max，设置最高达到频率，必须大于freq_min
+			参数freq_min，设置最小换向频率
+			参数para_a，越小曲线越平滑
+			参数para_b，越大曲线上升下降越缓慢
+			参数ratio，S形加减速阶段分化比例
+	*/
+	//加速段
+	mcstr -> asp -> freq_max = mcstr -> SpeedFrequency;
+	mcstr -> asp -> freq_min = mcstr -> asp -> freq_max / 8;	//低频为高频的8分频，测试值				
+	mcstr -> asp -> para_a = 0.03f;
+	mcstr -> asp -> para_b = 200.f;
+	mcstr -> asp -> ratio = 0.1f;
+	memset((void *)mcstr -> asp -> disp_table, 0u, sizeof(mcstr -> asp -> disp_table));
+	
+	//减速段
+	mcstr -> dsp -> freq_max = mcstr -> asp -> freq_max;		//加减速最大频率相同，即匀速频率
+	mcstr -> dsp -> freq_min = mcstr -> dsp -> freq_max / 12;	//低频为高频的12分频，测试值		
+	mcstr -> dsp -> para_a = 0.03f;
+	mcstr -> dsp -> para_b = 200.f;
+	mcstr -> dsp -> ratio = 0.1f;
+	memset((void *)mcstr -> dsp -> disp_table, 0u, sizeof(mcstr -> dsp -> disp_table));
+	
+	//依次塞入y值
+	for (num = 0u, step_x = 0u; num < X_Count; ++num, step_x += x_interval)				
+	{
+		//加速表
+		mcstr -> asp -> disp_table[num] = sigmodAlgo(
+			mcstr -> asp -> freq_max, 
+			mcstr -> asp -> freq_min, 
+			mcstr -> asp -> para_a, 
+			mcstr -> asp -> para_b, 
+			step_x);	
+		//减速表(倒排)
+		mcstr -> dsp -> disp_table[X_Count - num - 1] = sigmodAlgo(
+			mcstr -> dsp -> freq_max, 
+			mcstr -> dsp -> freq_min, 
+			mcstr -> dsp -> para_a, 
+			mcstr -> dsp -> para_b, 
+			step_x);	
+	}
+	
+	//打印加减速表测试
+	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmod Value: \r\n");
+	for (num = 0u; num < X_Count; ++num)
+		U1SD("%dHz\t", mcstr -> asp -> disp_table[num]);
+	U1SD("\r\n");
+	__ShellHeadSymbol__; U1SD("Print Test [D-value] Sigmod Value: \r\n");
+	for (num = 0u; num < X_Count; ++num)
+		U1SD("%dHz\t", mcstr -> dsp -> disp_table[num]);
+	U1SD("\r\n");
+}
+
 //电机驱动参数结构体初始化
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 {
 	mcstr -> ReversalCnt 		= 0u;					//脉冲计数器
-	mcstr -> ReversalRange 		= 0u;					//脉冲回收系数
+	mcstr -> IndexCnt			= 0u;					//序列计数器
+	mcstr -> ReversalRange 		= 0u;					//脉冲回收系数				
+	memset((void *)mcstr -> IndexRange, 0u, sizeof(mcstr -> IndexRange));//序列回收系数
 	mcstr -> RotationDistance 	= 0u;					//行距
 	mcstr -> SpeedFrequency 	= 0u;					//设定频率
 	mcstr -> divFreqCnt			= 0u;					//分频计数器	
@@ -84,6 +146,10 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 	mcstr -> MotorModeFlag		= LimitRun;				//有限运行模式
 	mcstr -> DistanceUnitLS		= RadUnit;				//默认角度制
 	mcstr -> RevDirectionFlag	= Pos_Rev;				//默认正转
+	
+	//赋予结构体指针初始化空间(直至程序结束空间不被释放)
+	mcstr -> asp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
+	mcstr -> dsp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
 }
 
 //TIM1作为电机驱动定时器初始化
@@ -163,9 +229,20 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 {
 	if (mcstr -> RotationDistance != 0)
 	{
+		//总脉冲区间回收计算
 		mcstr -> ReversalRange = 2 
 			* ((mcstr -> DistanceUnitLS == RadUnit)? RadUnitConst:LineUnitConst) 
 			* mcstr -> RotationDistance - 1;
+		
+		__ShellHeadSymbol__; U1SD("ReversalRange: %d\r\n", mcstr -> ReversalRange);
+		
+		//分段脉冲器区间回收计算
+		mcstr -> IndexRange[0] = (((mcstr -> ReversalRange + 1) * (mcstr -> asp -> ratio)) / X_Count) - 1;
+		mcstr -> IndexRange[1] = ((mcstr -> ReversalRange + 1) * (1.0f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;	//匀速频率点相同
+		mcstr -> IndexRange[2] = (((mcstr -> ReversalRange + 1) * (mcstr -> dsp -> ratio)) / X_Count) - 1;
+		
+		//打印确认
+		__ShellHeadSymbol__; U1SD("[Accel] %d | [Uniform] %d | [D-value] %d\r\n", mcstr -> IndexRange[0], mcstr -> IndexRange[1], mcstr -> IndexRange[2]);
 	}
 }
 
@@ -176,11 +253,17 @@ void MotorWorkStopFinish (MotorMotionSetting *mcstr)
 	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
 	IO_MainPulse = MD_IO_Reset;
 	mcstr -> MotorStatusFlag = Stew;					//标志复位
+	//复位脉冲计数变量，回收进程
+	mcstr -> IndexCnt = 0;
+	mcstr -> ReversalCnt = 0;							
 }
 
 //电机中断
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 {
+	static u8 table_index = 0;							//加减速表序号
+	static AUD_Symbol aud_sym = asym;					//加减匀速标记
+	
 	//电机通道中断标志置位
     if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)	
     {	
@@ -194,12 +277,56 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		{	
 			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
 			
-			mcstr -> ReversalCnt = 0;					//复位脉冲计数变量，回收进程
 			MotorWorkStopFinish(mcstr);
+			table_index = 0;							//序列复位
+			aud_sym = asym;								//标志复位
 
 			//EncoderCount_ReadValue(&st_encoderAcfg);	//显示当前编码器读数
 			
 			return;
+		}
+		
+		//S型加减速(仅位置控制模式启用)
+		if (mcstr -> MotorModeFlag == LimitRun && Return_Error_Type == Error_Clear && SAD_Switch == SAD_Enable)
+		{
+			//加速段
+			if (aud_sym == asym && mcstr -> IndexCnt == mcstr -> IndexRange[0])
+			{
+				mcstr -> IndexCnt = 0;
+				
+				if (table_index == X_Count - 1)
+					aud_sym = usym;
+				mcstr -> SpeedFrequency = mcstr -> asp -> disp_table[table_index++];	//频率更新
+			}
+			//匀速段
+			if (aud_sym == usym && mcstr -> IndexCnt == mcstr -> IndexRange[1])
+			{
+				mcstr -> IndexCnt = 0;
+				aud_sym = dsym;
+				table_index = 0;
+			}
+			//减速段
+			if (aud_sym == dsym && mcstr -> IndexCnt == mcstr -> IndexRange[2])
+			{
+				mcstr -> IndexCnt = 0;
+				
+				//全部行程结束，电机停止
+				if (table_index == X_Count - 1)
+				{	
+					LEDGroupCtrl(led_3, Off);					//电机运行指示灯
+			
+					MotorWorkStopFinish(mcstr);
+					table_index = 0;							//序列复位
+					aud_sym = asym;								//标志复位
+
+					//EncoderCount_ReadValue(&st_encoderAcfg);	//显示当前编码器读数
+					
+					return;
+				}
+				mcstr -> SpeedFrequency = mcstr -> dsp -> disp_table[table_index++];	//频率更新
+			}
+			//分频系数更新
+			FrequencyAlgoUpdate(&st_motorAcfg);
 		}
 		
 		//分频产生对应的脉冲频率
@@ -207,7 +334,8 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		{
 			mcstr -> divFreqCnt = 0;					//计数变量复位
 			IO_MainPulse = !IO_MainPulse;				//IO翻转产生脉冲
-			mcstr -> ReversalCnt++;
+			++mcstr -> ReversalCnt;						//总脉冲回收系数自增
+			++mcstr -> IndexCnt;						//分段脉冲回收系数自增
 		}
     }
 }
@@ -239,12 +367,14 @@ void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
 	{
 	case StartRun:
 		FrequencyAlgoUpdate(mcstr);						//更新频率
+		FreqDisperseTable_Create(mcstr);				//更新S型加减速表
 		DistanceAlgoUpdate(mcstr);						//更新行距
 		//对结果判定
 		if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 && Return_Error_Type == Error_Clear)								
 		{					
 			//计数器初始化
-			mcstr -> ReversalCnt = 0;			
+			mcstr -> ReversalCnt = 0;		
+			mcstr -> IndexCnt = 0;
 			mcstr -> divFreqCnt	= 0;
 			
 			//开关使能
@@ -285,24 +415,11 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 	else
 		mcstr -> RotationDistance = mvdis;
 	
-	//S形加减速法
-	if (SAD_Switch == SAD_Enable)
-	{
-		//传感器初始限位
-		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			//调用S形加减速频率-时间-脉冲数控制	
-			SigmodAcceDvalSpeed();						
-		else 
-			MotorBasicDriver(mcstr, StopRun);
-	}
-	//匀速法
-	else
-	{
-		if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
-			MotorBasicDriver(mcstr, StartRun);
-		else 
-			MotorBasicDriver(mcstr, StopRun);
-	}
+	//限位传感器信号捕捉
+	if ((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))
+		MotorBasicDriver(mcstr, StartRun);
+	else 
+		MotorBasicDriver(mcstr, StopRun);
 }
 
 /*

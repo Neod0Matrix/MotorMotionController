@@ -58,12 +58,55 @@ typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 //电机启动制动
 typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
 
+//电机S形加减速算法
+/*
+	sigmod函数原型
+	matlab建模原型方程：
+	x取10为间隔，从0取到400
+	y在1500到2500之间摆动
+	测试参数a=0.1 b=50
+	>>	x = [0:10:400];
+	>>	y = (2500-1500)./(1+exp(-0.1*(x-50)))+1500;
+	>>	plot(x, y)
+	只取整数进行演算
+	调参方法：优化曲线A，B值
+	不建议把最低频率设置到0
+*/	
+#ifndef sigmodAlgo
+#define sigmodAlgo(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
+#endif
+
+//X_Range / X_Count即x取值间隔，最好为整数			
+#define X_Count							40u				//x取值个数	
+#define X_Range							400u			//x取值范围，越大曲线越平滑(通常并不需要多平滑)
+
+//加减匀速段标记
+typedef enum 
+{
+	asym = 1,											//加速段
+	usym = 2,											//匀速段
+	dsym = 3,											//减速段
+} AUD_Symbol;
+
+//sigmod函数参数结构体
+typedef __packed struct 
+{
+	u16 	freq_max;									//参数freq_max，设置最高达到频率，但要注意抑制机械振动
+	u16 	freq_min;									//参数freq_min，设置最小换向频率
+	float 	para_a;										//参数para_a，越小曲线越平滑
+	float 	para_b;										//参数para_b，越大曲线上升下降越缓慢
+	float 	ratio;										//参数ratio，S形加减速阶段分化比例
+	u16 	disp_table[X_Count];						//整型离散表
+} Sigmod_Parameter;		
+
 //电机调用结构体
 typedef __packed struct 						
 {
 	//基础运动控制
     volatile uint32_t 	ReversalCnt;					//脉冲计数器
+	volatile uint32_t	IndexCnt;						//序列计数器
 	uint32_t			ReversalRange;					//脉冲回收系数
+	uint32_t			IndexRange[3];					//序列回收系数(加速、匀速、减速共三个)
     uint32_t			RotationDistance;				//行距
     uint16_t 			SpeedFrequency;					//设定频率
 	volatile uint16_t	divFreqCnt;						//分频计数器
@@ -73,6 +116,9 @@ typedef __packed struct
 	MotorRunMode		MotorModeFlag;					//运行模式
 	LineRadSelect		DistanceUnitLS;					//线度角度切换
 	RevDirection		RevDirectionFlag;				//方向标志
+	//S型加减速
+	Sigmod_Parameter 	*asp;							//加速参数
+	Sigmod_Parameter	*dsp;							//减速参数
 } MotorMotionSetting;
 extern MotorMotionSetting st_motorAcfg;					//测试步进电机A
 
@@ -81,6 +127,7 @@ void PulseDriver_IO_Init (void);
 void Direction_IO_Init (void);		
 
 //基于定时器的基本电机驱动
+void FreqDisperseTable_Create (MotorMotionSetting *mcstr);							//创建加减速表
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);							//结构体成员初始化
 void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函数声明		
 void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置

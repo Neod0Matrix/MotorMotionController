@@ -176,7 +176,7 @@ void OLED_Clear (void)
 	*/
 	
 	//使用标准库实现显存数组一次性清零，效率最高
-	memset(oled_graphic_memory, 0x00, sizeof(oled_graphic_memory));
+	memset((void *)oled_graphic_memory, 0x00, sizeof(oled_graphic_memory));
 	OLED_Refresh_Gram();					
 }
 

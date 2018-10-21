@@ -18,7 +18,7 @@ extern u8 USART2_TX_BUF[USART2_MAX_SEND_LEN]; 			//发送缓冲,最大USART2_MAX
 extern u16 USART2_RX_STA;   							//接收数据状态
 
 void USART2_Init (u32 baud);							//串口2初始化
-void u2_printf (char* fmt, ...);
+void u2_printf (char *fmt, ...);
 void TIM4_Switch (FunctionalState status);				//定时器4开关
 void TIM4_AuxUSART2_Init (void);						//初始化定时器4
 extern void usart2WaitForDataTransfer (void);			//等待数据发送完毕

@@ -11,13 +11,12 @@
 #include "limit_sensor.h"									//限位传感器
 #include "pulse_config.h"									//电机脉冲配置
 #include "encoder.h"										//光电编码器
-#include "sigmod.h"											//S形加减速
 #include "music.h"											//音乐播放器
 
 //模块声明
 #define _Modules_Type_			"PMC"						//模块类型
 #define _Modules_Name_			"MotorMotionController"		//模块名称
-#define _Modules_Version_ 		"v0p4_LTE"					//长期演进版
+#define _Modules_Version_ 		"v0p5_LTE"					//长期演进版
 
 //以下仿照config.h写法配置该模块的本地URC接口
 #define PosLogicOperation									//脉冲信号配置为正逻辑式，如果采用负逻辑则注释

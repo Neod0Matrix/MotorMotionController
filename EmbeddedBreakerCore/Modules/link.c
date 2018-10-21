@@ -27,8 +27,9 @@ void Modules_UniResConfig (void)
 	/*
 		电机柔性启停有多种积极意义
 		本工程主要是为了在步进电机相对高速运转时带动更重负载
+		开启后仅在位置控制模式(有限脉冲)中生效
 	*/
-    SAD_Switch 			= SAD_Disable;					//SAD_Enable		SAD_Disable
+    SAD_Switch 			= SAD_Enable;					//SAD_Enable		SAD_Disable
 	
 	/*
 		机器上电完全复位的重要部分
@@ -197,7 +198,6 @@ void Modules_HardwareInit (void)
 	TIM1_MecMotorDriver_Init();											//脉冲发生定时器
 	EncoderStructure_Init(&st_encoderAcfg);								//编码器结构体初始化
 	TIM8_EncoderCounter_Config(&st_encoderAcfg);						//编码器计数器
-	//FreqDisperseTable_Create(st_motorAcfg);							//加减速表生成
 }
 
 //硬件底层外部中断初始化，链接到EXTI_Config_Init函数

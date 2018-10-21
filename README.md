@@ -8,7 +8,7 @@ Copyright
 Update
 ===============
 
-	最后更新时间: 2018/07/13pm1747
+	最后更新时间: 2018/10/21pm1857
 
 Project Manual
 ==============
@@ -30,7 +30,7 @@ Project Manual
 	Laboratory: 	T.WKVER
 	OS_Version: 	μC/OS-III v3.03
 	FWLib_Verson: 	v3.5
-	Project_Verson: OS_v0p4_LTE 长期演进版(什么时候TMD才能跑出个stable来啊)_(:з」∠)_ _(┐「ε:)_
+	Project_Verson: OS_v0p5_LTE 长期演进版(什么时候TMD才能跑出个stable来啊)_(:з」∠)_ _(┐「ε:)_
 	
 Use Manual
 ===============

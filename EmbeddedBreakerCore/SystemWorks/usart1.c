@@ -275,9 +275,9 @@ void USART1_IRQHandler (void)
 #endif
 } 
 
-//串口1,printf 函数
+//串口1通道printf函数，输出定向到USART1
 //确保一次发送数据不超过USART1_MAX_SEND_LEN字节
-void u1_printf (char* fmt, ...)
+void u1_printf (char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);

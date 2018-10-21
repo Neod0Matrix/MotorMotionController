@@ -29,7 +29,7 @@ extern u8 USART1_RX_BUF[USART1_REC_LEN]; 				//接收缓冲,最大USART_REC_LEN�
 extern u16 USART1_RX_STA;         						//接收状态标记	
 
 void USART1_Init (u32 bound);							//初始化USART1
-void u1_printf (char* fmt, ...);						//USART printf
+void u1_printf (char *fmt, ...);						//USART printf
 extern void usart1WaitForDataTransfer (void);			//等待数据发送完毕
 
 //USART1普通打印变长参数
