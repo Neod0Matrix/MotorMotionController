@@ -26,7 +26,7 @@
 #define LineUnitConst					(float)(OneLoopPerPulse / OneLoopHeight)
 
 //复位起始频率
-#define ResetStartFrequency				3000		
+#define ResetStartFrequency				7500u		
 
 //行距逆向算法，用于机械臂绝对坐标构建(坐标调试模式使用)
 #ifndef DistanceFeedback
@@ -72,8 +72,8 @@ typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
 	调参方法：优化曲线A，B值
 	不建议把最低频率设置到0
 */	
-#ifndef sigmodAlgo
-#define sigmodAlgo(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
+#ifndef SIGMOD_FUNCTION
+#define SIGMOD_FUNCTION(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
 #endif
 
 //X_Range / X_Count即x取值间隔，最好为整数			
@@ -131,7 +131,7 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr);							//创建加减�
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);							//结构体成员初始化
 void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函数声明		
 void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置
-void FrequencyAlgoUpdate (MotorMotionSetting *mcstr);								//更新频率
+void DivFreqAlgoUpdate (MotorMotionSetting *mcstr);									//更新分频系数
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
 void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw);			//电机底层驱动
 void MotorWorkStopFinish (MotorMotionSetting *mcstr);								//电机运行停止

@@ -30,6 +30,7 @@ void Modules_UniResConfig (void)
 		开启后仅在位置控制模式(有限脉冲)中生效
 		S型加减速有可能因不可抗力导致行程偏差(加减磨损)，行程越短偏差越大
 		建议在考量行距精确度时关闭加减速，在考量载荷和换向速度时开启加减速
+		当计算上加减速区间脉冲为0时自行失能S型加减速
 	*/
     SAD_Switch 			= SAD_Enable;					//SAD_Enable		SAD_Disable
 	
@@ -131,6 +132,7 @@ void Modules_ProtocolTask (void)
 		
 		U1SD("%s", output_cache);
 		free((void*)output_cache);
+		output_cache = NULL;
 	}
 
 	switch (SSD_MotionNumber)				
