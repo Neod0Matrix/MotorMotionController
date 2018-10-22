@@ -117,17 +117,17 @@ void Modules_ProtocolTask (void)
 		
 		output_cache = (char*)malloc(sizeof(char) * OUTPUT_CACHE_SIZE);
 		//两个flag四种情况
-		if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == LimitRun)
-			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: LimitRun\r\n", 
+		if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == PosiCtrl)
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: Position Control\r\n", 
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
-		else if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == UnlimitRun)
-			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: UnlimitRun\r\n", 
+		else if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == SpeedCtrl)
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: Speed Control\r\n", 
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
-		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == LimitRun)
-			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: LimitRun\r\n", 
+		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == PosiCtrl)
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: Position Control\r\n", 
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);
-		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == UnlimitRun)
-			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: UnlimitRun\r\n", 
+		else if (SSD_Lrsflag == LineUnit && SSD_Mrmflag == SpeedCtrl)
+			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %dmm | Mode: Speed Control\r\n", 
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);	
 		
 		U1SD("%s", output_cache);
@@ -139,7 +139,7 @@ void Modules_ProtocolTask (void)
 	{
 	//急停(仅对直接输出模式有效，脱机模式请使用急停开关)
 	case Stew_All: 		
-		MotorBasicDriver(&st_motorAcfg, StopRun); 			//调用基础控制单元急停
+		MotorWorkStopFinish(&st_motorAcfg);		 			//调用基础控制单元急停
 		//EMERGENCYSTOP;									//协议通信急停								
 		break;
 	//上下行基本算例(MotorMotionController函数用法示例)
@@ -187,7 +187,7 @@ void OLED_DisplayModules (u8 page)
 	switch (page)
 	{
 	case 5:
-		OLED_DisplayMotorA(&st_motorAcfg);
+		OLED_DisplayMotorStatus(&st_motorAcfg);
 		break;
 	}
 }
@@ -347,7 +347,7 @@ void Modules_EXTI8_IRQHandler (void)
 	//急停跳出脱机指令的while循环				
 	music_JumpOutWhileLoop = True;			
 	
-	MotorBasicDriver(&st_motorAcfg, StopRun);	
+	MotorWorkStopFinish(&st_motorAcfg);		
 	EncoderCount_SetZero(&st_encoderAcfg);							//清除编码器计数	
 }
 

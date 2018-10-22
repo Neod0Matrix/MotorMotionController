@@ -29,7 +29,7 @@ void MusicPlayerDemo (MotorMotionSetting *mcstr, const u8 mtfa[], const u8 mbla[
 		MotorMotionController (	(tac != 0)? *(mtfa + i) * tac:*(mtfa + i), 
 								(bac != 0)? *(mbla + i) * bac:*(mbla + i), 
 								(i % 2 == 0)? Pos_Rev:Nav_Rev, 					//正反转交替
-								LimitRun, 
+								PosiCtrl, 
 								RadUnit, 
 								mcstr);
 		//等待节拍完成

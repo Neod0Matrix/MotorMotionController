@@ -51,7 +51,7 @@ typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;
 typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
 
 //电机运行模式，有限运行(位置控制模式)，无限运行(速度控制模式)
-typedef enum {LimitRun = 0, UnlimitRun = 1} MotorRunMode;
+typedef enum {PosiCtrl = 0, SpeedCtrl = 1} MotorRunMode;
 //线度角度切换(RA<->RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
@@ -133,7 +133,7 @@ void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函�
 void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置
 void DivFreqAlgoUpdate (MotorMotionSetting *mcstr);									//更新分频系数
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr);								//更新行距
-void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw);			//电机底层驱动
+void MotorWorkBooter (MotorMotionSetting *mcstr);									//电机运行启动
 void MotorWorkStopFinish (MotorMotionSetting *mcstr);								//电机运行停止
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr);							//电机脉冲产生中断
 
@@ -143,7 +143,7 @@ extern void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 extern void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr);				//滑轨上下测试
 extern void RepeatTestMotion (MotorMotionSetting *mcstr);							//传感器限位反复测试
 extern void Axis_Pos_Reset (MotorMotionSetting *mcstr);								//开机滑轨复位到零点
-void OLED_DisplayMotorA (MotorMotionSetting *mcstr);
+void OLED_DisplayMotorStatus (MotorMotionSetting *mcstr);
 
 //====================================================================================================
 //code by </MATRIX>@Neod Anderjon

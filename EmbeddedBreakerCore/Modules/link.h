@@ -52,7 +52,7 @@ extern Encoder_FeedbackUsing		Encoder_Switch;
 	AA 1B 00 01 00 00 03 06 00 01 00 00 00 00 00 05 05 FF
 */
 #define MDLS					0x1B
-#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, UnlimitRun, 0x01, DMAX, DMAX, DT}
+#define Modules_Protocol 		{DH, MDLS, DMAX, DMAX, LineUnit, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, DMAX, SpeedCtrl, 0x01, DMAX, DMAX, DT}
 #define SSD_MoNum_1st			2u							//单步调试算例编号第一位，共2位
 #define SSD_DisUnit_1st			4u							//单步调试行距单位第一位，共1位
 #define SSD_GetDis_1st			5u							//单步调试行距第一位，共4位

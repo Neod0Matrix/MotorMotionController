@@ -35,11 +35,11 @@ Sensor_MapTable Sensor_Scan (Input_LoogTrigger mode)
 {	 
 	u8 sensor_detect = 1;									//初始化传感器未响应
 	
-	if (mode) sensor_detect = 1; 									  
+	if (mode) 
+		sensor_detect = 1; 									  
 	
-	if (sensor_detect && (		ULSR_IO == Trigger 
-							|| 	DLSR_IO == Trigger)
-		)
+	if (sensor_detect && 
+		(ULSR_IO == Trigger || DLSR_IO == Trigger))
 	{
 		//传感器不消抖
 		
@@ -69,7 +69,7 @@ void EXTI4_IRQHandler (void)								//机械臂传感器检测
 	
 	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
 	{
-		MotorBasicDriver(&st_motorAcfg, StopRun);
+		MotorWorkStopFinish(&st_motorAcfg);			
 	}
 	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);				//清除EXTI线路挂起位
 	
@@ -87,7 +87,7 @@ void EXTI3_IRQHandler (void)								//机械臂传感器检测
 	
 	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
 	{		
-		MotorBasicDriver(&st_motorAcfg, StopRun);
+		MotorWorkStopFinish(&st_motorAcfg);			
 	}
 	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);				//清除EXTI线路挂起位
 	

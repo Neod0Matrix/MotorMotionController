@@ -76,10 +76,6 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
 {
 	u8 i;
 	u16 step_x, x_interval = X_Range / X_Count;	
-
-	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
-	mcstr -> asp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
-	mcstr -> dsp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
 	
 	/*
 		对参数初始化:
@@ -149,12 +145,39 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 	mcstr -> divFreqCnt			= 0u;					//分频计数器	
 	mcstr -> CalDivFreqConst 	= 0u;					//分频系数
 	mcstr -> MotorStatusFlag	= Stew;					//开启状态停止
-	mcstr -> MotorModeFlag		= LimitRun;				//有限运行模式
+	mcstr -> MotorModeFlag		= PosiCtrl;				//位置控制模式
 	mcstr -> DistanceUnitLS		= RadUnit;				//默认角度制
 	mcstr -> RevDirectionFlag	= Pos_Rev;				//默认正转
 	//定时器通道初始化关断
 	TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
 	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
+}
+
+//电机运行启动
+void MotorWorkBooter (MotorMotionSetting *mcstr)
+{	
+	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
+	mcstr -> asp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
+	mcstr -> dsp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
+	
+	DivFreqAlgoUpdate(mcstr);						//更新频率
+	FreqDisperseTable_Create(mcstr);				//更新S型加减速表
+	DistanceAlgoUpdate(mcstr);						//更新行距
+	//对结果判定
+	if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
+		&& Return_Error_Type == Error_Clear)								
+	{					
+		//计数器初始化
+		mcstr -> ReversalCnt = 0;		
+		mcstr -> IndexCnt = 0;
+		mcstr -> divFreqCnt	= 0;
+		
+		//开关使能
+		TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
+		TIM_Cmd(TIMERx_Number, ENABLE);				
+		
+		mcstr -> MotorStatusFlag = Run;						
+	}
 }
 
 //电机运行停止(错误发生或者脉冲执行结束)
@@ -267,7 +290,7 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 		mcstr -> IndexRange[0] = (((mcstr -> ReversalRange + 1) 
 			* (mcstr -> asp -> ratio)) / X_Count) - 1;	//加速段
 		mcstr -> IndexRange[1] = ((mcstr -> ReversalRange + 1) 
-			* (1.0f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;//匀速频率点相同，整体规划
+			* (1.f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;//匀速频率点相同，整体规划
 		mcstr -> IndexRange[2] = (((mcstr -> ReversalRange + 1) 
 			* (mcstr -> dsp -> ratio)) / X_Count) - 1;	//减速段
 		
@@ -293,7 +316,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		
 		//不启用S型加减速全程匀速
 		if ((mcstr -> ReversalCnt == mcstr -> ReversalRange 
-			&& mcstr -> MotorModeFlag != UnlimitRun 
+			&& mcstr -> MotorModeFlag != SpeedCtrl 
 			&& SAD_Switch == SAD_Disable) 
 			|| (Return_Error_Type != Error_Clear))		
 		{	
@@ -308,7 +331,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		}
 		
 		//S型加减速(仅位置控制模式生效)
-		if (mcstr -> MotorModeFlag == LimitRun 
+		if (mcstr -> MotorModeFlag == PosiCtrl 
 			&& Return_Error_Type == Error_Clear 
 			&& SAD_Switch == SAD_Enable)
 		{
@@ -385,40 +408,6 @@ void TIM1_CC_IRQHandler (void)
 #endif
 }
 
-//电机基础驱动
-//传参：电机编号，结构体频率，结构体距离，使能开关
-void MotorBasicDriver (MotorMotionSetting *mcstr, MotorSwitchControl sw)
-{	
-	switch (sw)
-	{
-	case StartRun:
-		DivFreqAlgoUpdate(mcstr);						//更新频率
-		FreqDisperseTable_Create(mcstr);				//更新S型加减速表
-		DistanceAlgoUpdate(mcstr);						//更新行距
-		//对结果判定
-		if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
-			&& Return_Error_Type == Error_Clear)								
-		{					
-			//计数器初始化
-			mcstr -> ReversalCnt = 0;		
-			mcstr -> IndexCnt = 0;
-			mcstr -> divFreqCnt	= 0;
-			
-			//开关使能
-			TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
-			TIM_Cmd(TIMERx_Number, ENABLE);				
-			
-			mcstr -> MotorStatusFlag = Run;
-		}
-		break;
-	case StopRun:
-		MotorWorkStopFinish(mcstr);
-		
-		__ShellHeadSymbol__; U1SD("MotorDriver Emergency Stop\r\n");
-		break;
-	}
-}
-
 //模块同名函数，基准调用
 //传参：转速(单位Hz)，行距，转向，运行模式(速度/位置)，行距单位，总调用结构体
 void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
@@ -432,7 +421,7 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 	mcstr -> DistanceUnitLS = lrs;
 	
 	//仅在非无限脉冲模式下对线度进行限制
-	mcstr -> RotationDistance = (mrm != UnlimitRun 
+	mcstr -> RotationDistance = (mrm != SpeedCtrl 
 		&& lrs == LineUnit)? ((mvdis < MaxLimit_Dis)? mvdis:MaxLimit_Dis):mvdis;
 	
 	//自行调整S型加减速使能失能
@@ -440,14 +429,15 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 		&& mcstr -> IndexRange[2] != 0)? SAD_Enable:SAD_Disable;
 	
 	//限位传感器起始信号捕捉(触发则不予启动电机)
-	MotorBasicDriver(mcstr, 
-		((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))? StartRun:StopRun);
+	((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))? 
+		//调用电机运行启动/停止函数
+		MotorWorkBooter(mcstr):MotorWorkStopFinish(mcstr);
 }
 
 /*
 	滑轨上下测试
 	传送参数：计数变量(偶数上升，奇数下降)	
-	这个功能必须在传感器安装后使用，不然会卡死
+	这个功能必须在传感器安装后使用
 */
 void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 {
@@ -457,7 +447,7 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 		MotorMotionController(	mcstr -> SpeedFrequency, 
 								MaxLimit_Dis, 
 								Pos_Rev, 
-								LimitRun, 
+								PosiCtrl, 
 								LineUnit, 
 								mcstr);
 		WaitForSR_Trigger(ULSR);						//等待传感器长期检测	
@@ -467,12 +457,12 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 		MotorMotionController(	mcstr -> SpeedFrequency, 
 								MaxLimit_Dis, 
 								Nav_Rev, 
-								LimitRun, 
+								PosiCtrl, 
 								LineUnit, 
 								mcstr);
 		WaitForSR_Trigger(DLSR);						//等待传感器长期检测
 	}
-	MotorBasicDriver(&st_motorAcfg, StopRun);
+	MotorWorkStopFinish(&st_motorAcfg);					//完成复位立即停止动作
 }
 
 /*
@@ -516,15 +506,15 @@ void Axis_Pos_Reset (MotorMotionSetting *mcstr)
 		mcstr -> SpeedFrequency = ResetStartFrequency;	//赋给起始频率
 		if (!DSrNLTri)									//起始时判断是否在原位置
 		{
-			MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, LimitRun, LineUnit, mcstr);
+			MotorMotionController(mcstr -> SpeedFrequency, MaxLimit_Dis, Nav_Rev, PosiCtrl, LineUnit, mcstr);
 			WaitForSR_Trigger(DLSR);					//等待传感器长期检测
-			MotorBasicDriver(&st_motorAcfg, StopRun);	//完成复位立即停止动作
+			MotorWorkStopFinish(&st_motorAcfg);			//完成复位立即停止动作
 		}
 	}		
 }
 
-//OLED显示motorA状态值
-void OLED_DisplayMotorA (MotorMotionSetting *mcstr)
+//OLED显示电机运行状态值(分时任务，不考虑实时显示)
+void OLED_DisplayMotorStatus (MotorMotionSetting *mcstr)
 {
 	//显示电机运行状态、显示电机转向
 	snprintf((char*)oled_dtbuf, OneRowMaxWord, ("MS:%s DN:%s"), 
