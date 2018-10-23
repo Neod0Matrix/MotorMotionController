@@ -81,23 +81,23 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
 		对参数初始化:
 		freq_max	设置最高换向频率，必须大于freq_min
 		freq_min	设置最小换向频率
-		para_a		sigmod参数A，越小曲线越平滑
-		para_b		sigmod参数B，越大曲线上升下降越缓慢
-		ratio		S形加减速分段区间比例
+		para_a		sigmoid参数A，越小曲线越平滑
+		para_b		sigmoid参数B，越大曲线上升下降越缓慢
+		ratio		S形加减速分段区间比例(加减速段占比越大行程误差越大)
 	*/
 	//加速段
 	mcstr -> asp -> freq_max = mcstr -> SpeedFrequency;
-	mcstr -> asp -> freq_min = mcstr -> asp -> freq_max / 8;	//低频为高频的8分频，测试值				
-	mcstr -> asp -> para_a = 0.015f;
-	mcstr -> asp -> para_b = 200.f;
+	mcstr -> asp -> freq_min = mcstr -> asp -> freq_max / 10;					
+	mcstr -> asp -> para_a = 0.01f;
+	mcstr -> asp -> para_b = 250.f;
 	mcstr -> asp -> ratio = 0.05f;
 	memset((void *)mcstr -> asp -> disp_table, 0u, sizeof(mcstr -> asp -> disp_table));
 	
 	//减速段
 	mcstr -> dsp -> freq_max = mcstr -> asp -> freq_max;		//加减速最大频率相同，即匀速频率
-	mcstr -> dsp -> freq_min = mcstr -> dsp -> freq_max / 8;		
-	mcstr -> dsp -> para_a = 0.015f;
-	mcstr -> dsp -> para_b = 200.f;
+	mcstr -> dsp -> freq_min = mcstr -> dsp -> freq_max / 10;		
+	mcstr -> dsp -> para_a = 0.01f;
+	mcstr -> dsp -> para_b = 250.f;
 	mcstr -> dsp -> ratio = 0.05f;
 	memset((void *)mcstr -> dsp -> disp_table, 0u, sizeof(mcstr -> dsp -> disp_table));
 	
@@ -105,14 +105,14 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
 	for (i = 0u, step_x = 0u; i < X_Count; ++i, step_x += x_interval)				
 	{
 		//加速表
-		mcstr -> asp -> disp_table[i] = SIGMOD_FUNCTION(
+		mcstr -> asp -> disp_table[i] = SIGMOID_FUNCTION(
 			mcstr -> asp -> freq_max, 
 			mcstr -> asp -> freq_min, 
 			mcstr -> asp -> para_a, 
 			mcstr -> asp -> para_b, 
 			step_x);	
 		//减速表
-		mcstr -> dsp -> disp_table[X_Count - i - 1] = SIGMOD_FUNCTION(
+		mcstr -> dsp -> disp_table[X_Count - i - 1] = SIGMOID_FUNCTION(
 			mcstr -> dsp -> freq_max, 
 			mcstr -> dsp -> freq_min, 
 			mcstr -> dsp -> para_a, 
@@ -122,11 +122,11 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
 	
 	/*
 	//打印加减速表测试
-	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmod Value: \r\n");
+	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmoid Value: \r\n");
 	for (i = 0u; i < X_Count; ++i)
 		U1SD("%dHz\t", mcstr -> asp -> disp_table[i]);
 	U1SD("\r\n");
-	__ShellHeadSymbol__; U1SD("Print Test [D-value] Sigmod Value: \r\n");
+	__ShellHeadSymbol__; U1SD("Print Test [D-value] Sigmoid Value: \r\n");
 	for (i = 0u; i < X_Count; ++i)
 		U1SD("%dHz\t", mcstr -> dsp -> disp_table[i]);
 	U1SD("\r\n");
@@ -157,13 +157,19 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 void MotorWorkBooter (MotorMotionSetting *mcstr)
 {	
 	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
-	mcstr -> asp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
-	mcstr -> dsp = (Sigmod_Parameter *)malloc(sizeof(Sigmod_Parameter));
+	mcstr -> asp = (Sigmoid_Parameter *)malloc(sizeof(Sigmoid_Parameter));
+	mcstr -> dsp = (Sigmoid_Parameter *)malloc(sizeof(Sigmoid_Parameter));
 	
 	DivFreqAlgoUpdate(mcstr);						//更新频率
 	FreqDisperseTable_Create(mcstr);				//更新S型加减速表
 	DistanceAlgoUpdate(mcstr);						//更新行距
-	//对结果判定
+	
+	//若计算阈值出现0则禁用S型加减速
+	if (SAD_Switch == SAD_Enable)
+		SAD_Switch = (mcstr -> IndexRange[0] != 0 
+			&& mcstr -> IndexRange[2] != 0)? SAD_Enable:SAD_Disable;
+	
+	//对用户输入结果判定
 	if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
 		&& Return_Error_Type == Error_Clear)								
 	{					
@@ -342,13 +348,14 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 				mcstr -> IndexCnt = 0u;
 				//加速段结束(遍历频率点数组)
 				//频率点达到数组末位有效位
-				if (table_index == X_Count - 1)	
+				if (table_index == X_Count - 1)			
 					aud_sym = usym;						//修改标志进入匀速段
 				mcstr -> SpeedFrequency = mcstr -> asp -> disp_table[table_index++];//频率更新
 			}
 			//匀速段，结束后标志指向减速段
 			//每一个判断指向整个匀速段同等频率的脉冲大区间
-			if (aud_sym == usym && mcstr -> IndexCnt == mcstr -> IndexRange[1])
+			//匀速段IndexCnt从1开始自增，所以终止值也加1
+			if (aud_sym == usym && mcstr -> IndexCnt == mcstr -> IndexRange[1] + 1)
 			{
 				mcstr -> IndexCnt = 0u;
 				aud_sym = dsym;							//匀速段结束，修改标志进入减速段
@@ -423,10 +430,6 @@ void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 	//仅在非无限脉冲模式下对线度进行限制
 	mcstr -> RotationDistance = (mrm != SpeedCtrl 
 		&& lrs == LineUnit)? ((mvdis < MaxLimit_Dis)? mvdis:MaxLimit_Dis):mvdis;
-	
-	//自行调整S型加减速使能失能
-	SAD_Switch = (mcstr -> IndexRange[0] != 0 
-		&& mcstr -> IndexRange[2] != 0)? SAD_Enable:SAD_Disable;
 	
 	//限位传感器起始信号捕捉(触发则不予启动电机)
 	((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))? 

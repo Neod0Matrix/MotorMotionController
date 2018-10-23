@@ -60,7 +60,7 @@ typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
 
 //电机S形加减速算法
 /*
-	sigmod函数原型
+	sigmoid函数原型
 	matlab建模原型方程：
 	x取10为间隔，从0取到400
 	y在1500到2500之间摆动
@@ -72,8 +72,8 @@ typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
 	调参方法：优化曲线A，B值
 	不建议把最低频率设置到0
 */	
-#ifndef SIGMOD_FUNCTION
-#define SIGMOD_FUNCTION(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
+#ifndef SIGMOID_FUNCTION
+#define SIGMOID_FUNCTION(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
 #endif
 
 //X_Range / X_Count即x取值间隔，最好为整数			
@@ -88,7 +88,7 @@ typedef enum
 	dsym = 3,											//减速段
 } AUD_Symbol;
 
-//sigmod函数参数结构体
+//sigmoid函数参数结构体
 typedef __packed struct 
 {
 	u16 	freq_max;									//参数freq_max，设置最高达到频率，但要注意抑制机械振动
@@ -97,7 +97,7 @@ typedef __packed struct
 	float 	para_b;										//参数para_b，越大曲线上升下降越缓慢
 	float 	ratio;										//参数ratio，S形加减速阶段分化比例
 	u16 	disp_table[X_Count];						//整型离散表
-} Sigmod_Parameter;		
+} Sigmoid_Parameter;		
 
 //电机调用结构体
 typedef __packed struct 						
@@ -117,8 +117,8 @@ typedef __packed struct
 	LineRadSelect		DistanceUnitLS;					//线度角度切换
 	RevDirection		RevDirectionFlag;				//方向标志
 	//S型加减速
-	Sigmod_Parameter 	*asp;							//加速参数
-	Sigmod_Parameter	*dsp;							//减速参数
+	Sigmoid_Parameter 	*asp;							//加速参数
+	Sigmoid_Parameter	*dsp;							//减速参数
 } MotorMotionSetting;
 extern MotorMotionSetting st_motorAcfg;					//测试步进电机A
 
