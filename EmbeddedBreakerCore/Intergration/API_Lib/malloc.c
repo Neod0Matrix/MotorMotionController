@@ -2,7 +2,8 @@
 //code by </MATRIX>@Neod Anderjon
 //author: Neod Anderjon
 //====================================================================================================
-//动态内存管理，避免使用标准库提供的malloc()和free()，在RTOS中很容易导致内存碎片
+//针对使用RTOS的stm32动态内存管理，避免使用标准库提供的malloc和free，在RTOS中很容易导致内存碎片
+//使用mymalloc和myfree代替
 
 //内存池(4字节对齐)
 __align(sizeof(int)) u8 membase[MEM_MAX_SIZE];	//SRAM内存池

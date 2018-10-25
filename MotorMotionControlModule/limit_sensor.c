@@ -67,9 +67,10 @@ void EXTI4_IRQHandler (void)								//机械臂传感器检测
 	OSIntEnter();    
 #endif
 	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET)  		
+	if (ASES_Switch	== ASES_Enable 
+		&& EXTI_GetITStatus(ARM2Up_EXTI_Line) != RESET && pwsf == StartW)  		
 	{
-		MotorWorkStopFinish(&st_motorAcfg);			
+		MotorWorkStopFinish(&st_motorAcfg);					
 	}
 	EXTI_ClearITPendingBit(ARM2Up_EXTI_Line);				//清除EXTI线路挂起位
 	
@@ -85,9 +86,10 @@ void EXTI3_IRQHandler (void)								//机械臂传感器检测
 	OSIntEnter();    
 #endif
 	
-	if (ASES_Switch	== ASES_Enable && EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET)  
+	if (ASES_Switch	== ASES_Enable 
+		&& EXTI_GetITStatus(ARM2Dn_EXTI_Line) != RESET && pwsf == StartW) 
 	{		
-		MotorWorkStopFinish(&st_motorAcfg);			
+		MotorWorkStopFinish(&st_motorAcfg);					
 	}
 	EXTI_ClearITPendingBit(ARM2Dn_EXTI_Line);				//清除EXTI线路挂起位
 	

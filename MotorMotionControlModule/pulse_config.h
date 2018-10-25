@@ -55,9 +55,6 @@ typedef enum {PosiCtrl = 0, SpeedCtrl = 1} MotorRunMode;
 //线度角度切换(RA<->RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
-//电机启动制动
-typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
-
 //电机S形加减速算法
 /*
 	sigmoid函数原型
@@ -76,10 +73,6 @@ typedef enum {StopRun = 0, StartRun = !StopRun} MotorSwitchControl;
 #define SIGMOID_FUNCTION(ymax, ymin, a, b, x)	(u16)((ymax - ymin) / (1 + exp((double)(-a * (x - b)))) + ymin)
 #endif
 
-//X_Range / X_Count即x取值间隔，最好为整数			
-#define X_Count							40u				//x取值个数	
-#define X_Range							400u			//x取值范围，越大曲线越平滑(通常并不需要多平滑)
-
 //加减匀速段标记
 typedef enum 
 {
@@ -96,7 +89,10 @@ typedef __packed struct
 	float 	para_a;										//参数para_a，越小曲线越平滑
 	float 	para_b;										//参数para_b，越大曲线上升下降越缓慢
 	float 	ratio;										//参数ratio，S形加减速阶段分化比例
-	u16 	disp_table[X_Count];						//整型离散表
+	u16 	x_range;									//x取值范围
+	u16		table_size;									//加减速表大小
+	u16		table_index;								//离散表序列
+	u16 	*disp_table;								//整型离散表
 } Sigmoid_Parameter;		
 
 //电机调用结构体
@@ -111,6 +107,7 @@ typedef __packed struct
     uint16_t 			SpeedFrequency;					//设定频率
 	volatile uint16_t	divFreqCnt;						//分频计数器
 	uint16_t			CalDivFreqConst;				//分频系数
+	float 				DivCorrectConst;				//分频数矫正系数
 	//电机状态标志
 	MotorRunStatus		MotorStatusFlag;				//运行状态
 	MotorRunMode		MotorModeFlag;					//运行模式
@@ -119,6 +116,7 @@ typedef __packed struct
 	//S型加减速
 	Sigmoid_Parameter 	*asp;							//加速参数
 	Sigmoid_Parameter	*dsp;							//减速参数
+	AUD_Symbol			aud_sym;						//加减匀速阶段标识
 } MotorMotionSetting;
 extern MotorMotionSetting st_motorAcfg;					//测试步进电机A
 

@@ -107,7 +107,8 @@ void Modules_ProtocolTask (void)
 	//一字模式位
 	MotorRunMode SSD_Mrmflag		= (MotorRunMode)(*(USART1_RX_BUF + SSD_Mode_1st));
 	
-	char *output_cache;
+	//打印确认输入数据
+	char *output_cache = NULL;
 #define OUTPUT_CACHE_SIZE	100
 	
 	//仅最简算例打印标志，算例编号，圈数
@@ -115,7 +116,8 @@ void Modules_ProtocolTask (void)
 	{
 		__ShellHeadSymbol__; U1SD("Please Confirm Motion Parameter: ");
 		
-		output_cache = (char*)malloc(sizeof(char) * OUTPUT_CACHE_SIZE);
+		output_cache = (char *)mymalloc(sizeof(char) * OUTPUT_CACHE_SIZE);
+		
 		//两个flag四种情况
 		if (SSD_Lrsflag == RadUnit && SSD_Mrmflag == PosiCtrl)
 			snprintf(output_cache, OUTPUT_CACHE_SIZE, "Motion Type: %02d | Speed: %dHz | Distance: %ddegree | Mode: Position Control\r\n", 
@@ -131,14 +133,14 @@ void Modules_ProtocolTask (void)
 				SSD_MotionNumber, SSD_Speed, SSD_GetDistance);	
 		
 		U1SD("%s", output_cache);
-		free((void*)output_cache);
+		myfree((void *)output_cache);
 		output_cache = NULL;
 	}
 
 	switch (SSD_MotionNumber)				
 	{
 	//急停(仅对直接输出模式有效，脱机模式请使用急停开关)
-	case Stew_All: 		
+	case Stew_All: 	
 		MotorWorkStopFinish(&st_motorAcfg);		 			//调用基础控制单元急停
 		//EMERGENCYSTOP;									//协议通信急停								
 		break;
@@ -337,17 +339,14 @@ void Modules_EXTI8_IRQHandler (void)
 	{
 		errorFlag = True;
 		EMERGENCYSTOP;		
+		MotorWorkStopFinish(&st_motorAcfg);							//紧急停止电机运动
 	}			
 	else
 	{
 		errorFlag = False;
 		ERROR_CLEAR;
 	}		
-	
-	//急停跳出脱机指令的while循环				
-	music_JumpOutWhileLoop = True;			
-	
-	MotorWorkStopFinish(&st_motorAcfg);		
+	music_JumpOutWhileLoop = True;									//急停跳出脱机指令的while循环			
 	EncoderCount_SetZero(&st_encoderAcfg);							//清除编码器计数	
 }
 

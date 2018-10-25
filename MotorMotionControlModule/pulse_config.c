@@ -29,11 +29,6 @@
 #define TIMPrescaler				35					//psc 时钟预分频数
 #define TargetTimeBase				TimeCalcusofucTimer(TIMarrPeriod, TIMPrescaler)//定时器单个目标定时时基，单位us
 #define FreqMaxThreshold			500000L				//频率计数器上限阈值
-//分频数计算
-#define DivCorrectConst				0.64f				//分频数矫正系数(128MHz主频使用，72MHz主频可以试一下0.36f)
-#ifndef DivFreqConst					
-#define DivFreqConst(targetFreq) 	(float)((((FreqMaxThreshold / TargetTimeBase) / targetFreq) - 1) * DivCorrectConst)
-#endif
 
 //声明电机参数结构体
 MotorMotionSetting st_motorAcfg;						
@@ -69,139 +64,6 @@ void Direction_IO_Init (void)
 						GPIOA,					
 						IHL,				
 						EBO_Enable);
-}
-
-//创建离散值数组 程序初始化时调用一次，系统运行时全局保存
-void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
-{
-	u8 i;
-	u16 step_x, x_interval = X_Range / X_Count;	
-	
-	/*
-		对参数初始化:
-		freq_max	设置最高换向频率，必须大于freq_min
-		freq_min	设置最小换向频率
-		para_a		sigmoid参数A，越小曲线越平滑
-		para_b		sigmoid参数B，越大曲线上升下降越缓慢
-		ratio		S形加减速分段区间比例(加减速段占比越大行程误差越大)
-	*/
-	//加速段
-	mcstr -> asp -> freq_max = mcstr -> SpeedFrequency;
-	mcstr -> asp -> freq_min = mcstr -> asp -> freq_max / 10;					
-	mcstr -> asp -> para_a = 0.01f;
-	mcstr -> asp -> para_b = 250.f;
-	mcstr -> asp -> ratio = 0.05f;
-	memset((void *)mcstr -> asp -> disp_table, 0u, sizeof(mcstr -> asp -> disp_table));
-	
-	//减速段
-	mcstr -> dsp -> freq_max = mcstr -> asp -> freq_max;		//加减速最大频率相同，即匀速频率
-	mcstr -> dsp -> freq_min = mcstr -> dsp -> freq_max / 10;		
-	mcstr -> dsp -> para_a = 0.01f;
-	mcstr -> dsp -> para_b = 250.f;
-	mcstr -> dsp -> ratio = 0.05f;
-	memset((void *)mcstr -> dsp -> disp_table, 0u, sizeof(mcstr -> dsp -> disp_table));
-	
-	//依次塞入y值(离散频率点)
-	for (i = 0u, step_x = 0u; i < X_Count; ++i, step_x += x_interval)				
-	{
-		//加速表
-		mcstr -> asp -> disp_table[i] = SIGMOID_FUNCTION(
-			mcstr -> asp -> freq_max, 
-			mcstr -> asp -> freq_min, 
-			mcstr -> asp -> para_a, 
-			mcstr -> asp -> para_b, 
-			step_x);	
-		//减速表
-		mcstr -> dsp -> disp_table[X_Count - i - 1] = SIGMOID_FUNCTION(
-			mcstr -> dsp -> freq_max, 
-			mcstr -> dsp -> freq_min, 
-			mcstr -> dsp -> para_a, 
-			mcstr -> dsp -> para_b, 
-			step_x);	
-	}
-	
-	/*
-	//打印加减速表测试
-	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmoid Value: \r\n");
-	for (i = 0u; i < X_Count; ++i)
-		U1SD("%dHz\t", mcstr -> asp -> disp_table[i]);
-	U1SD("\r\n");
-	__ShellHeadSymbol__; U1SD("Print Test [D-value] Sigmoid Value: \r\n");
-	for (i = 0u; i < X_Count; ++i)
-		U1SD("%dHz\t", mcstr -> dsp -> disp_table[i]);
-	U1SD("\r\n");
-	*/
-}
-
-//电机驱动参数结构体初始化
-void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
-{
-	mcstr -> ReversalCnt 		= 0u;					//脉冲计数器
-	mcstr -> IndexCnt			= 0u;					//序列计数器
-	mcstr -> ReversalRange 		= 0u;					//脉冲回收系数				
-	memset((void *)mcstr -> IndexRange, 0u, sizeof(mcstr -> IndexRange));//序列回收系数
-	mcstr -> RotationDistance 	= 0u;					//行距
-	mcstr -> SpeedFrequency 	= 0u;					//设定频率
-	mcstr -> divFreqCnt			= 0u;					//分频计数器	
-	mcstr -> CalDivFreqConst 	= 0u;					//分频系数
-	mcstr -> MotorStatusFlag	= Stew;					//开启状态停止
-	mcstr -> MotorModeFlag		= PosiCtrl;				//位置控制模式
-	mcstr -> DistanceUnitLS		= RadUnit;				//默认角度制
-	mcstr -> RevDirectionFlag	= Pos_Rev;				//默认正转
-	//定时器通道初始化关断
-	TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
-	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
-}
-
-//电机运行启动
-void MotorWorkBooter (MotorMotionSetting *mcstr)
-{	
-	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
-	mcstr -> asp = (Sigmoid_Parameter *)malloc(sizeof(Sigmoid_Parameter));
-	mcstr -> dsp = (Sigmoid_Parameter *)malloc(sizeof(Sigmoid_Parameter));
-	
-	DivFreqAlgoUpdate(mcstr);						//更新频率
-	FreqDisperseTable_Create(mcstr);				//更新S型加减速表
-	DistanceAlgoUpdate(mcstr);						//更新行距
-	
-	//若计算阈值出现0则禁用S型加减速
-	if (SAD_Switch == SAD_Enable)
-		SAD_Switch = (mcstr -> IndexRange[0] != 0 
-			&& mcstr -> IndexRange[2] != 0)? SAD_Enable:SAD_Disable;
-	
-	//对用户输入结果判定
-	if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
-		&& Return_Error_Type == Error_Clear)								
-	{					
-		//计数器初始化
-		mcstr -> ReversalCnt = 0;		
-		mcstr -> IndexCnt = 0;
-		mcstr -> divFreqCnt	= 0;
-		
-		//开关使能
-		TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
-		TIM_Cmd(TIMERx_Number, ENABLE);				
-		
-		mcstr -> MotorStatusFlag = Run;						
-	}
-}
-
-//电机运行停止(错误发生或者脉冲执行结束)
-void MotorWorkStopFinish (MotorMotionSetting *mcstr)
-{
-	TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
-	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
-	IO_MainPulse = MD_IO_Reset;
-	//状态变量复位
-	mcstr -> MotorStatusFlag = Stew;					
-	mcstr -> IndexCnt = 0u;
-	mcstr -> ReversalCnt = 0u;			
-
-	//释放结构体指针空间
-	free((void *)mcstr -> asp);
-	free((void *)mcstr -> dsp);
-	mcstr -> asp = NULL;
-	mcstr -> dsp = NULL;
 }
 
 //TIM1作为电机驱动定时器初始化
@@ -270,16 +132,205 @@ void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control)
     TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);	//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
+//创建离散值数组 程序初始化时调用一次，系统运行时全局保存
+void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
+{
+	u16 i;
+	
+	float step_x, x_interval;	
+	
+	/*
+		对参数初始化:
+		freq_max	设置最高换向频率，必须大于freq_min
+		freq_min	设置最小换向频率
+		para_a		sigmoid参数A，越小曲线越平滑
+		para_b		sigmoid参数B，越大曲线上升下降越缓慢
+		ratio		S形加减速分段区间比例(加减速段占比越大行程误差越大)
+		table_index 离散表指向序列
+		table_size	离散表大小，x取值个数，根据不同的行程取值个数会影响精度
+		x_range		x取值范围，越大曲线越平滑，不会影响精度
+		(注：测试结果：table_size=10,360度非常准，table_size=40,3600度非常准)
+	*/
+	//加速段
+	mcstr -> asp -> freq_max 	= mcstr -> SpeedFrequency;
+	mcstr -> asp -> freq_min 	= mcstr -> asp -> freq_max / 10;					
+	mcstr -> asp -> para_a 		= 0.01f;
+	mcstr -> asp -> para_b 		= 250.f;
+	mcstr -> asp -> ratio 		= 0.05f;
+	mcstr -> asp -> table_index = 0u;
+	mcstr -> asp -> table_size 	= 10u;
+	mcstr -> asp -> x_range		= 1600.f;
+	mcstr -> asp -> disp_table 	= (u16 *)mymalloc(sizeof(u16) * mcstr -> asp -> table_size);
+	
+	//减速段
+	mcstr -> dsp -> freq_max 	= mcstr -> asp -> freq_max;		//加减速最大频率相同，即匀速频率
+	mcstr -> dsp -> freq_min 	= mcstr -> dsp -> freq_max / 10;		
+	mcstr -> dsp -> para_a 		= 0.01f;
+	mcstr -> dsp -> para_b 		= 250.f;
+	mcstr -> dsp -> ratio 		= 0.05f;
+	mcstr -> dsp -> table_index = 0u;
+	mcstr -> dsp -> table_size 	= 10u;
+	mcstr -> dsp -> x_range		= 1600.f;
+	mcstr -> dsp -> disp_table 	= (u16 *)mymalloc(sizeof(u16) * mcstr -> dsp -> table_size);
+	
+	//依次塞入y值(离散频率点)
+	x_interval = mcstr -> asp -> x_range / mcstr -> asp -> table_size;
+	for (i = 0u, step_x = 0.f; i < mcstr -> asp -> table_size; ++i, step_x += x_interval)				
+	{
+		//加速表
+		mcstr -> asp -> disp_table[i] = SIGMOID_FUNCTION(
+			mcstr -> asp -> freq_max, 
+			mcstr -> asp -> freq_min, 
+			mcstr -> asp -> para_a, 
+			mcstr -> asp -> para_b, 
+			step_x);	
+	}
+	x_interval = mcstr -> dsp -> x_range / mcstr -> dsp -> table_size;
+	for (i = 0u, step_x = 0.f; i < mcstr -> dsp -> table_size; ++i, step_x += x_interval)				
+	{
+		//减速表
+		mcstr -> dsp -> disp_table[mcstr -> dsp -> table_size - i - 1] = SIGMOID_FUNCTION(
+			mcstr -> dsp -> freq_max, 
+			mcstr -> dsp -> freq_min, 
+			mcstr -> dsp -> para_a, 
+			mcstr -> dsp -> para_b, 
+			step_x);	
+	}
+	
+	/*
+	//打印加减速表测试
+	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmoid Value: \r\n");
+	for (i = 0u; i < mcstr -> asp -> table_size; ++i)
+		U1SD("%dHz\t", mcstr -> asp -> disp_table[i]);
+	U1SD("\r\n");
+	__ShellHeadSymbol__; U1SD("Print Test [D-value] Sigmoid Value: \r\n");
+	for (i = 0u; i < mcstr -> dsp -> table_size; ++i)
+		U1SD("%dHz\t", mcstr -> dsp -> disp_table[i]);
+	U1SD("\r\n");
+	*/
+}
+
+//电机驱动参数结构体初始化
+//电机停止时会调用一次初始化复位所有参数
+void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
+{
+	TIM_CtrlPWMOutputs(TIMERx_Number, DISABLE);			//通道输出关闭
+	TIM_Cmd(TIMERx_Number, DISABLE);					//TIM关闭
+	IO_MainPulse = MD_IO_Reset;							//IO置位
+	
+	mcstr -> ReversalCnt 		= 0u;					//脉冲计数器
+	mcstr -> IndexCnt			= 0u;					//序列计数器
+	mcstr -> ReversalRange 		= 0u;					//脉冲回收系数				
+	memset((void *)mcstr -> IndexRange, 0u, sizeof(mcstr -> IndexRange));//序列回收系数
+	mcstr -> RotationDistance 	= 0u;					//行距
+	mcstr -> SpeedFrequency 	= 0u;					//设定频率
+	mcstr -> divFreqCnt			= 0u;					//分频计数器	
+	mcstr -> CalDivFreqConst 	= 0u;					//分频系数
+	//频率矫正系数(此处仅提供标准主频和最高主频对应的矫正系数)
+	if (rcc_main_freq == 72000000UL)
+		mcstr -> DivCorrectConst = 0.9f;
+	else if (rcc_main_freq == 128000000UL)
+		mcstr -> DivCorrectConst = 0.64f;
+	mcstr -> MotorStatusFlag	= Stew;					//开启状态停止
+	mcstr -> MotorModeFlag		= PosiCtrl;				//位置控制模式
+	mcstr -> DistanceUnitLS		= RadUnit;				//默认角度制
+	mcstr -> RevDirectionFlag	= Pos_Rev;				//默认正转
+	mcstr -> aud_sym			= asym;					//加减匀速阶段标识
+}
+
+//电机运行启动
+void MotorWorkBooter (MotorMotionSetting *mcstr)
+{	
+	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
+	mcstr -> asp = (Sigmoid_Parameter *)mymalloc(sizeof(Sigmoid_Parameter));
+	mcstr -> dsp = (Sigmoid_Parameter *)mymalloc(sizeof(Sigmoid_Parameter));
+	
+	DivFreqAlgoUpdate(mcstr);							//更新频率
+	FreqDisperseTable_Create(mcstr);					//更新S型加减速表
+	DistanceAlgoUpdate(mcstr);							//更新行距
+	
+	//对用户输入结果判定
+	if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
+		&& Return_Error_Type == Error_Clear)								
+	{					
+		//开关使能
+		TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
+		TIM_Cmd(TIMERx_Number, ENABLE);				
+		
+		mcstr -> MotorStatusFlag = Run;						
+	}
+}
+
+//电机运行停止(错误发生或者脉冲执行结束)
+void MotorWorkStopFinish (MotorMotionSetting *mcstr)
+{	
+	//从运行状态停止
+	if (mcstr -> MotorStatusFlag == Run)
+	{
+		//重新初始化参数
+		MotorConfigStrParaInit(mcstr);
+		
+		//释放离散表指针空间
+		if (!mcstr -> asp -> disp_table)
+		{
+			myfree((void *)mcstr -> asp -> disp_table);
+			mcstr -> asp -> disp_table = NULL;
+		}
+		if (!mcstr -> dsp -> disp_table)
+		{
+			myfree((void *)mcstr -> dsp -> disp_table);
+			mcstr -> dsp -> disp_table = NULL;
+		}
+		//释放结构体指针空间
+		if (!mcstr -> asp)
+		{
+			myfree((void *)mcstr -> asp);
+			mcstr -> asp = NULL;
+		}
+		if (!mcstr -> dsp) 
+		{
+			myfree((void *)mcstr -> dsp);
+			mcstr -> dsp = NULL;
+		}
+	}
+}
+
+//模块同名函数，基准调用
+//传参：转速(单位Hz)，行距，转向，运行模式(速度/位置)，行距单位，总调用结构体
+void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
+	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
+{	
+	//电机转向初始化
+	mcstr -> RevDirectionFlag = dir;
+	IO_Direction = mcstr -> RevDirectionFlag;	
+	mcstr -> SpeedFrequency = spfq;				
+	mcstr -> MotorModeFlag = mrm;
+	mcstr -> DistanceUnitLS = lrs;
+	
+	//仅在非无限脉冲模式下对线度进行限制
+	mcstr -> RotationDistance = (mrm != SpeedCtrl 
+		&& lrs == LineUnit)? ((mvdis < MaxLimit_Dis)? mvdis:MaxLimit_Dis):mvdis;
+	
+	//限位传感器起始信号捕捉(触发则不予启动电机)
+	((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))? 
+		//调用电机运行启动/停止函数
+		MotorWorkBooter(mcstr):MotorWorkStopFinish(mcstr);
+}
+
 //分频系数更新计算
 void DivFreqAlgoUpdate (MotorMotionSetting *mcstr)
 {
+	//分频系数 = ((频率上限阈值/目标时基/设定频率)-1)x频率矫正系数
 	if (mcstr -> SpeedFrequency != 0)
-		mcstr -> CalDivFreqConst = DivFreqConst(mcstr -> SpeedFrequency);
+		mcstr -> CalDivFreqConst = ((((FreqMaxThreshold / TargetTimeBase) 
+			/ mcstr -> SpeedFrequency) - 1) * mcstr -> DivCorrectConst);
 }
 
 //行距更新计算
 void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 {
+	static Bool_ClassType local_sad_switch = False;
+	
 	if (mcstr -> RotationDistance != 0)
 	{
 		//总脉冲区间回收计算
@@ -288,31 +339,50 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 			* mcstr -> RotationDistance - 1.f;
 		
 		/*
-			分段脉冲区间回收计算
+			S型加减速分段脉冲区间回收计算
 			在S型加减速中加减速段的偏移会导致整个行程的偏差
 			当加减速都减1，长行程更加精确
 			当加减速都不减1，短行程更加精确
 		*/
 		mcstr -> IndexRange[0] = (((mcstr -> ReversalRange + 1) 
-			* (mcstr -> asp -> ratio)) / X_Count) - 1;	//加速段
+			* mcstr -> asp -> ratio) / mcstr -> asp -> table_size) - 1;	//加速段
 		mcstr -> IndexRange[1] = ((mcstr -> ReversalRange + 1) 
 			* (1.f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;//匀速频率点相同，整体规划
 		mcstr -> IndexRange[2] = (((mcstr -> ReversalRange + 1) 
-			* (mcstr -> dsp -> ratio)) / X_Count) - 1;	//减速段
+			* (mcstr -> dsp -> ratio)) / mcstr -> dsp -> table_size) - 1;//减速段
 		
+		/*
 		//测试行程区间计算
-		__ShellHeadSymbol__; U1SD("[Reversal Pulse Range] %d\r\n", mcstr -> ReversalRange);
-		__ShellHeadSymbol__; U1SD("[Accel Range] %d | [Uniform Range] %d | [D-value Range] %d\r\n", 
-			mcstr -> IndexRange[0], mcstr -> IndexRange[1], mcstr -> IndexRange[2]);
+		__ShellHeadSymbol__; U1SD(
+			"[Reversal Pulse Range] %d | [Accel Range] %d | [Uniform Range] %d | [D-value Range] %d\r\n", 
+			mcstr -> ReversalRange, mcstr -> IndexRange[0], mcstr -> IndexRange[1], mcstr -> IndexRange[2]);
+		*/
+			
+		/*
+			在URC预设时若开启S型加减速后，在计算阈值时出现0则禁用加减速
+			若出现不为0值则恢复加减速
+			该功能仅适用于URC预设开启加减速，若预设禁用则不会因为计算结果启用
+		*/
+		if (SAD_Switch == SAD_Enable && local_sad_switch == False 
+			&& (mcstr -> IndexRange[0] == 0 || mcstr -> IndexRange[2] == 0))
+		{
+			SAD_Switch = SAD_Disable;					//若计算阈值出现0则禁用S型加减速
+			local_sad_switch = True;
+			__ShellHeadSymbol__; U1SD("Calculate Result Appear 0 value, S-shaped A/D Disabled!\r\n");
+		}
+		else if (mcstr -> IndexRange[0] != 0 && mcstr -> IndexRange[2] != 0 
+			&& local_sad_switch == True)
+		{
+			SAD_Switch = SAD_Enable;					//计算不为0恢复S型加减速
+			local_sad_switch = False;
+			__ShellHeadSymbol__; U1SD("Calculate Result Correct, S-shaped A/D Activated!\r\n");
+		}
 	}
 }
 
 //定时器中断调用函数，控制电机脉冲IO口电平变化
 void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
-{
-	static u8 table_index = 0;							//加减速表序号
-	static AUD_Symbol aud_sym = asym;					//加减匀速标记
-	
+{	
 	//电机通道中断标志置位
     if (TIM_GetITStatus(TIMERx_Number, MotorChnx) == SET)	
     {	
@@ -327,10 +397,8 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 			|| (Return_Error_Type != Error_Clear))		
 		{	
 			LEDGroupCtrl(led_3, Off);					//电机运行指示灯
+			
 			MotorWorkStopFinish(mcstr);
-			//这两个加减速变量写在这是为了让急停响应时也能复位
-			table_index = 0;							//序列复位
-			aud_sym = asym;								//标志复位
 			EncoderCount_ReadValue(&st_encoderAcfg);	//检测行程偏差
 			
 			return;
@@ -343,43 +411,40 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		{
 			//加速段，结束后标志指向匀速段
 			//每一个判断指向一个频率点的脉冲小区间
-			if (aud_sym == asym && mcstr -> IndexCnt == mcstr -> IndexRange[0])
+			if (mcstr -> aud_sym == asym && mcstr -> IndexCnt == mcstr -> IndexRange[0])
 			{
 				mcstr -> IndexCnt = 0u;
 				//加速段结束(遍历频率点数组)
 				//频率点达到数组末位有效位
-				if (table_index == X_Count - 1)			
-					aud_sym = usym;						//修改标志进入匀速段
-				mcstr -> SpeedFrequency = mcstr -> asp -> disp_table[table_index++];//频率更新
+				if (mcstr -> asp -> table_index == mcstr -> asp -> table_size - 1)			
+					mcstr -> aud_sym = usym;			//修改标志进入匀速段
+				mcstr -> SpeedFrequency = mcstr -> asp -> disp_table[mcstr -> asp -> table_index++];//频率更新
 			}
 			//匀速段，结束后标志指向减速段
 			//每一个判断指向整个匀速段同等频率的脉冲大区间
 			//匀速段IndexCnt从1开始自增，所以终止值也加1
-			if (aud_sym == usym && mcstr -> IndexCnt == mcstr -> IndexRange[1] + 1)
+			if (mcstr -> aud_sym == usym && mcstr -> IndexCnt == mcstr -> IndexRange[1] + 1)
 			{
 				mcstr -> IndexCnt = 0u;
-				aud_sym = dsym;							//匀速段结束，修改标志进入减速段
-				table_index = 0;						//序列复位，进入减速段频率点第一位
+				mcstr -> aud_sym = dsym;				//匀速段结束，修改标志进入减速段
 			}
 			//减速段，结束后标志复位到加速段，等待下一次启动
 			//每一个判断指向一个频率点的脉冲小区间
-			if (aud_sym == dsym && mcstr -> IndexCnt == mcstr -> IndexRange[2])
+			if (mcstr -> aud_sym == dsym && mcstr -> IndexCnt == mcstr -> IndexRange[2])
 			{
 				mcstr -> IndexCnt = 0u;
 				//全部行程结束，电机停止
 				//序列达到末位有效位+1，达到后会退出不再执行
-				if (table_index == X_Count)
+				if (mcstr -> dsp -> table_index == mcstr -> dsp -> table_size)
 				{	
 					LEDGroupCtrl(led_3, Off);			//电机运行指示灯
-			
+					
 					MotorWorkStopFinish(mcstr);
-					table_index = 0;					//序列复位
-					aud_sym = asym;						//标志复位
 					EncoderCount_ReadValue(&st_encoderAcfg);//检测行程偏差
 					
 					return;
 				}
-				mcstr -> SpeedFrequency = mcstr -> dsp -> disp_table[table_index++];//频率更新
+				mcstr -> SpeedFrequency = mcstr -> dsp -> disp_table[mcstr -> dsp -> table_index++];//频率更新
 			}
 			//分频系数更新
 			DivFreqAlgoUpdate(&st_motorAcfg);
@@ -413,28 +478,6 @@ void TIM1_CC_IRQHandler (void)
 #if SYSTEM_SUPPORT_OS
 	OSIntExit();    
 #endif
-}
-
-//模块同名函数，基准调用
-//传参：转速(单位Hz)，行距，转向，运行模式(速度/位置)，行距单位，总调用结构体
-void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
-	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
-{	
-	//电机转向初始化
-	mcstr -> RevDirectionFlag = dir;
-	IO_Direction = mcstr -> RevDirectionFlag;	
-	mcstr -> SpeedFrequency = spfq;				
-	mcstr -> MotorModeFlag = mrm;
-	mcstr -> DistanceUnitLS = lrs;
-	
-	//仅在非无限脉冲模式下对线度进行限制
-	mcstr -> RotationDistance = (mrm != SpeedCtrl 
-		&& lrs == LineUnit)? ((mvdis < MaxLimit_Dis)? mvdis:MaxLimit_Dis):mvdis;
-	
-	//限位传感器起始信号捕捉(触发则不予启动电机)
-	((dir == Pos_Rev && !USrNLTri) || (dir == Nav_Rev && !DSrNLTri))? 
-		//调用电机运行启动/停止函数
-		MotorWorkBooter(mcstr):MotorWorkStopFinish(mcstr);
 }
 
 /*

@@ -72,7 +72,7 @@ void EXTI9_5_IRQHandler (void)
 	OSIntEnter();    
 #endif
 	
-	if (EXTI_GetITStatus(Stew_EXTI_Line) != RESET)
+	if (EXTI_GetITStatus(Stew_EXTI_Line) != RESET) 
 	{
 		Modules_EXTI8_IRQHandler();				
 			
