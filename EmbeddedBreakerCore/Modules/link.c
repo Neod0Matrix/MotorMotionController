@@ -114,7 +114,7 @@ void Modules_ProtocolTask (void)
 	//仅最简算例打印标志，算例编号，圈数
 	if (SSD_MotionNumber == UpMove || SSD_MotionNumber == DownMove)
 	{
-		__ShellHeadSymbol__; U1SD("Please Confirm Motion Parameter: ");
+		__ShellHeadSymbol__; U1SD("Check Input Motion Parameter: ");
 		
 		output_cache = (char *)mymalloc(sizeof(char) * OUTPUT_CACHE_SIZE);
 		

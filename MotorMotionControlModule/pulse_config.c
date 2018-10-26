@@ -16,10 +16,10 @@
 #define TIMERx_IRQn					TIM1_CC_IRQn		//通道中断编号
 #define MotorChnx					TIM_IT_CC1			//电机通道编号
 //定时器设置参数
-#define DriverDivision				16					//细分数
+#define DriverDivision				8					//细分数
 /*
 	arr 自动重装值，最大捕获范围0xFFFF
-	根据TB6560步进电机驱动器特性，细分数越大，可以接受的频率就越大
+	根据TB6560步进电机驱动器特性，细分数越大，可以接受的频率上限就越大
 */
 #if DriverDivision >= 8									//8个细分及其以上设置到5us
 #define TIMarrPeriod				9					
@@ -132,8 +132,8 @@ void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control)
     TIM_ITConfig(TIMERx_Number, Motorx_CCx, control);	//TIMx中断源设置，开启相应通道的捕捉比较中断
 }
 
-//创建离散值数组 程序初始化时调用一次，系统运行时全局保存
-void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
+//S型加减速参数初始化，每次电机启动时调用更新
+void SigmoidParam_Init (MotorMotionSetting *mcstr)
 {
 	u16 i;
 	
@@ -149,28 +149,40 @@ void FreqDisperseTable_Create (MotorMotionSetting *mcstr)
 		table_index 离散表指向序列
 		table_size	离散表大小，x取值个数，根据不同的行程取值个数会影响精度
 		x_range		x取值范围，越大曲线越平滑，不会影响精度
-		(注：测试结果：table_size=10,360度非常准，table_size=40,3600度非常准)
 	*/
 	//加速段
 	mcstr -> asp -> freq_max 	= mcstr -> SpeedFrequency;
-	mcstr -> asp -> freq_min 	= mcstr -> asp -> freq_max / 10;					
-	mcstr -> asp -> para_a 		= 0.01f;
+	mcstr -> asp -> freq_min 	= mcstr -> asp -> freq_max / 10;						
+	mcstr -> asp -> para_a 		= 0.02f;
 	mcstr -> asp -> para_b 		= 250.f;
 	mcstr -> asp -> ratio 		= 0.05f;
 	mcstr -> asp -> table_index = 0u;
-	mcstr -> asp -> table_size 	= 10u;
+	
+	//根据行距切换X取值个数(玄学测量统计分析)
+	if (mcstr -> RotationDistance > 0 && mcstr -> RotationDistance <= 360)
+		mcstr -> asp -> table_size = R360;
+	else if (mcstr -> RotationDistance > 360 && mcstr -> RotationDistance <= 1080)
+		mcstr -> asp -> table_size = R1080;
+	else if (mcstr -> RotationDistance > 1080 && mcstr -> RotationDistance <= 1800)
+		mcstr -> asp -> table_size = R1800;
+	else if (mcstr -> RotationDistance > 1800 && mcstr -> RotationDistance <= 3600)
+		mcstr -> asp -> table_size = R3600;
+	else
+		mcstr -> asp -> table_size = R3600;						//大于3600度没有测出合适值
+	__ShellHeadSymbol__; U1SD("Setting S-AD Function X Count: %d\r\n", mcstr -> asp -> table_size);
+	
 	mcstr -> asp -> x_range		= 1600.f;
 	mcstr -> asp -> disp_table 	= (u16 *)mymalloc(sizeof(u16) * mcstr -> asp -> table_size);
 	
 	//减速段
 	mcstr -> dsp -> freq_max 	= mcstr -> asp -> freq_max;		//加减速最大频率相同，即匀速频率
 	mcstr -> dsp -> freq_min 	= mcstr -> dsp -> freq_max / 10;		
-	mcstr -> dsp -> para_a 		= 0.01f;
+	mcstr -> dsp -> para_a 		= 0.02f;
 	mcstr -> dsp -> para_b 		= 250.f;
 	mcstr -> dsp -> ratio 		= 0.05f;
 	mcstr -> dsp -> table_index = 0u;
-	mcstr -> dsp -> table_size 	= 10u;
-	mcstr -> dsp -> x_range		= 1600.f;
+	mcstr -> dsp -> table_size 	= mcstr -> asp -> table_size;
+	mcstr -> dsp -> x_range		= mcstr -> asp -> x_range;
 	mcstr -> dsp -> disp_table 	= (u16 *)mymalloc(sizeof(u16) * mcstr -> dsp -> table_size);
 	
 	//依次塞入y值(离散频率点)
@@ -246,7 +258,7 @@ void MotorWorkBooter (MotorMotionSetting *mcstr)
 	mcstr -> dsp = (Sigmoid_Parameter *)mymalloc(sizeof(Sigmoid_Parameter));
 	
 	DivFreqAlgoUpdate(mcstr);							//更新频率
-	FreqDisperseTable_Create(mcstr);					//更新S型加减速表
+	SigmoidParam_Init(mcstr);							//更新S型加减速参数
 	DistanceAlgoUpdate(mcstr);							//更新行距
 	
 	//对用户输入结果判定
@@ -345,18 +357,16 @@ void DistanceAlgoUpdate (MotorMotionSetting *mcstr)
 			当加减速都不减1，短行程更加精确
 		*/
 		mcstr -> IndexRange[0] = (((mcstr -> ReversalRange + 1) 
-			* mcstr -> asp -> ratio) / mcstr -> asp -> table_size) - 1;	//加速段
+			* mcstr -> asp -> ratio) / mcstr -> asp -> table_size) - 1;	//加速段单位
 		mcstr -> IndexRange[1] = ((mcstr -> ReversalRange + 1) 
-			* (1.f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;//匀速频率点相同，整体规划
+			* (1.f - (mcstr -> asp -> ratio + mcstr -> dsp -> ratio))) - 1;//匀速段区间
 		mcstr -> IndexRange[2] = (((mcstr -> ReversalRange + 1) 
-			* (mcstr -> dsp -> ratio)) / mcstr -> dsp -> table_size) - 1;//减速段
+			* (mcstr -> dsp -> ratio)) / mcstr -> dsp -> table_size) - 1;//减速段单位
 		
-		/*
 		//测试行程区间计算
 		__ShellHeadSymbol__; U1SD(
-			"[Reversal Pulse Range] %d | [Accel Range] %d | [Uniform Range] %d | [D-value Range] %d\r\n", 
+			"Check Calculate Result: [Distance Pulse] %d | [Accel Unit] %d | [Uniform Range] %d | [D-value Unit] %d\r\n", 
 			mcstr -> ReversalRange, mcstr -> IndexRange[0], mcstr -> IndexRange[1], mcstr -> IndexRange[2]);
-		*/
 			
 		/*
 			在URC预设时若开启S型加减速后，在计算阈值时出现0则禁用加减速

@@ -14,24 +14,14 @@
 //脉冲IO口
 #define IO_MainPulse 					PAout(7)		//主脉冲输出
 #define IO_Direction 					PAout(6)		//方向线输出
-//测试用宏定义
-#define StepAngle						1.8f			//步距角
-#define OneLoopPerPulse 				1600.f			//实际脉冲个数/圈	
 
-//角度线度转换
-//角度单位：一圈即360度；线度单位：一圈即5mm
-#define MaxLimit_Dis					315.f			//滑轨限位
-#define OneLoopHeight					5.f				//步进电机转一圈上升高度
-#define RadUnitConst					(float)(OneLoopPerPulse / 360.f)
-#define LineUnitConst					(float)(OneLoopPerPulse / OneLoopHeight)
+#define OneLoopPerPulse 				1600.f			//实际脉冲个数/圈(细分数x(360度/步距角))	
+#define MaxLimit_Dis					315.f			//滑轨限位，单位mm
+#define OneLoopHeight					5.f				//丝杠滑轨一圈变化距离，单位mm
+#define RadUnitConst					4.445f			//(float)(OneLoopPerPulse / 360.f)
+#define LineUnitConst					320.f			//(float)(OneLoopPerPulse / OneLoopHeight)
 
-//复位起始频率
-#define ResetStartFrequency				7500u		
-
-//行距逆向算法，用于机械臂绝对坐标构建(坐标调试模式使用)
-#ifndef DistanceFeedback
-#define DistanceFeedback(pulc, perloop) ((((pulc + 1u) / 2u) / perloop) * OneLoopHeight)
-#endif
+#define ResetStartFrequency				7500u			//复位起始频率
 
 //脉冲发送结束后电机驱动IO口的复位状态
 #ifdef use_ULN2003A										//ULN2003A反相设置
@@ -47,12 +37,11 @@ typedef enum {Pos_Rev = 0, Nav_Rev = !Pos_Rev} RevDirection;
 typedef enum {Pos_Rev = 1, Nav_Rev = !Pos_Rev} RevDirection;	
 #endif
 
-//电机运行状态
+//电机运行状态(停止/运行)
 typedef enum {Run = 1, Stew = !Run} MotorRunStatus;
-
-//电机运行模式，有限运行(位置控制模式)，无限运行(速度控制模式)
+//电机运行模式(有限运行(位置控制模式)/无限运行(速度控制模式))
 typedef enum {PosiCtrl = 0, SpeedCtrl = 1} MotorRunMode;
-//线度角度切换(RA<->RD)
+//线度角度切换(RA/RD)
 typedef enum {RadUnit = 0, LineUnit = 1} LineRadSelect;
 
 //电机S形加减速算法
@@ -80,6 +69,16 @@ typedef enum
 	usym = 2,											//匀速段
 	dsym = 3,											//减速段
 } AUD_Symbol;
+
+//S型加减速X取值个数高精度典型值
+//开环系统无法保证绝对精度
+typedef enum
+{
+	R360 	= 10u,										//行程360度以内
+	R1080 	= 16u,										//行程1080度以内
+	R1800	= 25u,										//行程1800度以内
+	R3600 	= 40u,										//行程3600度以内
+} XSizeTypicalValue;
 
 //sigmoid函数参数结构体
 typedef __packed struct 
@@ -125,7 +124,7 @@ void PulseDriver_IO_Init (void);
 void Direction_IO_Init (void);		
 
 //基于定时器的基本电机驱动
-void FreqDisperseTable_Create (MotorMotionSetting *mcstr);							//创建加减速表
+void SigmoidParam_Init (MotorMotionSetting *mcstr);									//创建加减速表
 void MotorConfigStrParaInit (MotorMotionSetting *mcstr);							//结构体成员初始化
 void TIM1_MecMotorDriver_Init (void);												//高级定时器初始化函数声明		
 void TIM1_OutputChannelConfig (uint16_t Motorx_CCx, FunctionalState control);		//定时器输出比较模式通道配置
