@@ -152,8 +152,8 @@ void SigmoidParam_Init (MotorMotionSetting *mcstr)
 	*/
 	//加速段
 	mcstr -> asp -> freq_max 	= mcstr -> SpeedFrequency;
-	mcstr -> asp -> freq_min 	= mcstr -> asp -> freq_max / 10;						
-	mcstr -> asp -> para_a 		= 0.02f;
+	mcstr -> asp -> freq_min 	= mcstr -> asp -> freq_max / 10;	
+	mcstr -> asp -> para_a 		= 0.02f;						//重复测试后发现第140组数据会在这里溢出
 	mcstr -> asp -> para_b 		= 250.f;
 	mcstr -> asp -> ratio 		= 0.05f;
 	mcstr -> asp -> table_index = 0u;
@@ -210,7 +210,7 @@ void SigmoidParam_Init (MotorMotionSetting *mcstr)
 	}
 	
 	/*
-	//打印加减速表测试
+	//打印加减速表测试，用于确认频率点结果
 	__ShellHeadSymbol__; U1SD("Print Test [Accel] Sigmoid Value: \r\n");
 	for (i = 0u; i < mcstr -> asp -> table_size; ++i)
 		U1SD("%dHz\t", mcstr -> asp -> disp_table[i]);
@@ -253,6 +253,8 @@ void MotorConfigStrParaInit (MotorMotionSetting *mcstr)
 //电机运行启动
 void MotorWorkBooter (MotorMotionSetting *mcstr)
 {	
+	static MotorRunStatus local_status_flag;
+	
 	//在电机运行初始化参数时赋予结构体指针空间，运行停止后释放空间
 	mcstr -> asp = (Sigmoid_Parameter *)mymalloc(sizeof(Sigmoid_Parameter));
 	mcstr -> dsp = (Sigmoid_Parameter *)mymalloc(sizeof(Sigmoid_Parameter));
@@ -260,16 +262,31 @@ void MotorWorkBooter (MotorMotionSetting *mcstr)
 	DivFreqAlgoUpdate(mcstr);							//更新频率
 	SigmoidParam_Init(mcstr);							//更新S型加减速参数
 	DistanceAlgoUpdate(mcstr);							//更新行距
-	
+
 	//对用户输入结果判定
 	if (mcstr -> CalDivFreqConst != 0 && mcstr -> ReversalRange != 0 
 		&& Return_Error_Type == Error_Clear)								
-	{					
+	{	
+		if (ui_oled.ui_confirm_alter == 5 && UIRef_ModeFlag == Quick_Ref)
+			OLED_DisplayMotorStatus(mcstr);
+		
 		//开关使能
 		TIM_CtrlPWMOutputs(TIMERx_Number, ENABLE);	
 		TIM_Cmd(TIMERx_Number, ENABLE);				
 		
-		mcstr -> MotorStatusFlag = Run;						
+		mcstr -> MotorStatusFlag = Run;			
+	}
+	
+	local_status_flag = mcstr -> MotorStatusFlag;
+	//不允许打断当前工作
+	while (local_status_flag == Run)
+	{
+		if (local_status_flag != mcstr -> MotorStatusFlag)
+		{
+			local_status_flag = mcstr -> MotorStatusFlag;
+			//这里必须打印一些东西才能正常工作
+			__ShellHeadSymbol__; U1SD("Wait For Pulse Produce Finish\r\n");
+		}
 	}
 }
 
@@ -305,6 +322,10 @@ void MotorWorkStopFinish (MotorMotionSetting *mcstr)
 			mcstr -> dsp = NULL;
 		}
 	}
+	if (ui_oled.ui_confirm_alter == 5 && UIRef_ModeFlag == Quick_Ref)
+		OLED_DisplayMotorStatus(mcstr);
+	//为了延长电机寿命让组合运动指令中间间歇一段时间
+	delay_ms(500);
 }
 
 //模块同名函数，基准调用
@@ -312,10 +333,9 @@ void MotorWorkStopFinish (MotorMotionSetting *mcstr)
 void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir, 
 	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr)
 {	
-	//电机转向初始化
 	mcstr -> RevDirectionFlag = dir;
-	IO_Direction = mcstr -> RevDirectionFlag;	
-	mcstr -> SpeedFrequency = spfq;				
+	IO_Direction = mcstr -> RevDirectionFlag;			//电机转向初始化
+	mcstr -> SpeedFrequency = spfq;							
 	mcstr -> MotorModeFlag = mrm;
 	mcstr -> DistanceUnitLS = lrs;
 	
@@ -456,7 +476,7 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 				}
 				mcstr -> SpeedFrequency = mcstr -> dsp -> disp_table[mcstr -> dsp -> table_index++];//频率更新
 			}
-			//分频系数更新
+			//频率更新后分频系数更新
 			DivFreqAlgoUpdate(&st_motorAcfg);
 		}
 		
@@ -465,13 +485,14 @@ void MotorPulseProduceHandler (MotorMotionSetting *mcstr)
 		{
 			mcstr -> divFreqCnt = 0;					//分频计数变量复位
 			IO_MainPulse = !IO_MainPulse;				
+			
 			++mcstr -> ReversalCnt;						//总脉冲回收系数自增
 			++mcstr -> IndexCnt;						//分段脉冲回收系数自增
 		}
     }
 }
 
-//定时器1中断服务
+//定时器1捕获比较中断服务
 void TIM1_CC_IRQHandler (void)
 {
 #if SYSTEM_SUPPORT_OS
@@ -528,7 +549,7 @@ void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr)
 void RepeatTestMotion (MotorMotionSetting *mcstr)
 {
 	u16 repeatCnt = 0u;
-	__ShellHeadSymbol__; U1SD("Repeate Test Motion\r\n");//动作类型标志
+	__ShellHeadSymbol__; U1SD("Repeate Test Motion\r\n");
 
 	//除非产生警报否则一直循环
 	while (Return_Error_Type == Error_Clear)							
@@ -539,8 +560,45 @@ void RepeatTestMotion (MotorMotionSetting *mcstr)
 		__ShellHeadSymbol__; U1SD("No.%04d Times Repeat Test\r\n", repeatCnt);
 		displaySystemInfo();							//打印系统状态信息
 		
-		if (++repeatCnt >= 1000) 
-			repeatCnt = 0;			
+		if (++repeatCnt >= 1000u) 
+			repeatCnt = 0u;			
+		
+		if (STEW_LTrigger) 
+			break;										//长按检测急停
+	}
+    //总动作完成
+	__ShellHeadSymbol__; U1SD("Test Repeat Stop\r\n");
+}
+
+//正反转重复性测试
+void PosNavRepeatMotion (MotorMotionSetting *mcstr, u16 speed, u16 dis)
+{
+	u16 repeatCnt = 0u;
+	__ShellHeadSymbol__; U1SD("Positive And Negative Repeatability Test\r\n");
+
+	//除非产生警报否则一直循环
+	while (Return_Error_Type == Error_Clear)							
+	{		
+		//正转
+		MotorMotionController(	speed, 
+								dis, 
+								Pos_Rev, 
+								PosiCtrl, 
+								RadUnit, 
+								mcstr); 
+		//反转
+		MotorMotionController(	speed, 
+								dis, 
+								Nav_Rev, 
+								PosiCtrl, 
+								RadUnit, 
+								mcstr); 
+		
+		//打印循环次数
+		__ShellHeadSymbol__; U1SD("No.%04d Times Repeat Test\r\n", repeatCnt);
+		
+		if (++repeatCnt >= 1000u) 
+			repeatCnt = 0u;			
 		
 		if (STEW_LTrigger) 
 			break;										//长按检测急停

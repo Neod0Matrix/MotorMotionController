@@ -139,6 +139,7 @@ extern void MotorMotionController (u16 spfq, u16 mvdis, RevDirection dir,
 	MotorRunMode mrm, LineRadSelect lrs, MotorMotionSetting *mcstr);				//机械臂运动算例
 extern void PeriodUpDnMotion (u16 count, MotorMotionSetting *mcstr);				//滑轨上下测试
 extern void RepeatTestMotion (MotorMotionSetting *mcstr);							//传感器限位反复测试
+extern void PosNavRepeatMotion (MotorMotionSetting *mcstr, u16 speed, u16 dis);		//正反转重复性测试
 extern void Axis_Pos_Reset (MotorMotionSetting *mcstr);								//开机滑轨复位到零点
 void OLED_DisplayMotorStatus (MotorMotionSetting *mcstr);
 

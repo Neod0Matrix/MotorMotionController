@@ -170,6 +170,10 @@ void Modules_ProtocolTask (void)
 	case MusicPr:
 		MusicPlayerCallback(&st_motorAcfg);
 		break;
+	//正反转重复性测试(仅速度和行距有效，默认角度制单位，默认位置控制模式)
+	case PosNavRep:
+		PosNavRepeatMotion(&st_motorAcfg, SSD_Speed, SSD_GetDistance);
+		break;
 	}		
 }
 
@@ -189,7 +193,8 @@ void OLED_DisplayModules (u8 page)
 	switch (page)
 	{
 	case 5:
-		OLED_DisplayMotorStatus(&st_motorAcfg);
+		if (UIRef_ModeFlag == Stable_Ref)
+			OLED_DisplayMotorStatus(&st_motorAcfg);
 		break;
 	}
 }

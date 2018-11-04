@@ -22,7 +22,7 @@ const u8 musicBeatLongArray[] = {	9, 3, 12, 12, 12,
 //传参：电机控制结构体指针，常量音频数组，常量节拍数组，音频放大系数，节拍放大系数
 void MusicPlayerDemo (MotorMotionSetting *mcstr, const u8 mtfa[], const u8 mbla[], u8 tac, u8 bac)
 {
-	u8 i, arrayLength = Get_Array_Size((char*)mtfa);
+	u8 i, arrayLength = Get_Array_Size((char *)mtfa);
 	
 	for (i = 0; i < arrayLength; i++)
 	{	

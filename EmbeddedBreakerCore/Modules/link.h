@@ -70,6 +70,7 @@ typedef enum
     DownMove	= 2,										//机械臂下行(反转)
 	Repeat		= 3,										//反复测试
 	MusicPr		= 4,										//音乐播放
+	PosNavRep	= 5,										//正反转重复性测试
 } Motion_Select;											//算例选择	
 
 //urc开源链接编号
